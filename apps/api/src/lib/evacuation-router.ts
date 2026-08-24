@@ -117,7 +117,7 @@ export function findNearestExit(graph: BuildingGraph, startPoint: Point, startFl
       const steps: RouteStep[] = [];
       let cursor: string | null = currentId;
       while (cursor && prevStep.has(cursor)) {
-        const { from, step } = prevStep.get(cursor)!;
+        const { from, step }: { from: string; step: RouteStep } = prevStep.get(cursor)!;
         steps.unshift(step);
         cursor = from;
       }
