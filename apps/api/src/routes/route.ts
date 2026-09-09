@@ -1,22 +1,18 @@
 import { Router } from 'express';
-import { supabase } from '../supabase-client';
+import { requireAuth } from '../middleware/auth';
 import { findNearestExit } from '../lib/evacuation-router';
 import { BuildingGraph } from '../lib/evacuation-types';
+import { routeRequestSchema } from '../lib/validation';
 
 const router = Router();
 
-// Body: { buildingId: string, point: { x: number, y: number }, floor: number }
-router.post('/', async (req, res) => {
-  const { buildingId, point, floor } = req.body ?? {};
+router.post('/', requireAuth, async (req, res) => {
+  const { buildingId, point, floor } = routeRequestSchema.parse(req.body);
 
-  if (!buildingId || !point || typeof floor !== 'number') {
-    return res.status(400).json({ error: 'buildingId, point, and floor are required' });
-  }
-
-  const { data, error } = await supabase
+  const { data, error } = await req.supabase!
     .from('buildings')
     .select('graph_data')
-    .eq('id', buildingId)
+    .eq('client_building_id', buildingId)
     .single();
 
   if (error || !data) {
