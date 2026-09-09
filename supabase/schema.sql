@@ -33,12 +33,15 @@ end $$;
 create index if not exists buildings_owner_id_idx on buildings (owner_id);
 
 create or replace function set_updated_at()
-returns trigger as $$
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
 begin
   new.updated_at = now();
   return new;
 end;
-$$ language plpgsql;
+$$;
 
 drop trigger if exists buildings_set_updated_at on buildings;
 create trigger buildings_set_updated_at
