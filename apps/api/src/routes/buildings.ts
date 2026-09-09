@@ -1,32 +1,38 @@
 import { Router } from 'express';
-import { supabase } from '../supabase-client';
-import { BuildingGraph } from '../lib/evacuation-types';
+import { requireAuth } from '../middleware/auth';
+import { buildingGraphSchema } from '../lib/validation';
 
 const router = Router();
 
-router.post('/', async (req, res) => {
-  const graph = req.body as BuildingGraph;
+router.post('/', requireAuth, async (req, res) => {
+  const graph = buildingGraphSchema.parse(req.body);
 
-  if (!graph?.buildingId || !Array.isArray(graph.rooms)) {
-    return res.status(400).json({ error: 'Request body must be a valid BuildingGraph' });
-  }
-
-  const { error } = await supabase
+  const { data, error } = await req.supabase!
     .from('buildings')
-    .upsert({ id: graph.buildingId, name: graph.buildingId, graph_data: graph });
+    .upsert(
+      {
+        owner_id: req.userId,
+        client_building_id: graph.buildingId,
+        name: graph.buildingId,
+        graph_data: graph,
+      },
+      { onConflict: 'owner_id,client_building_id' }
+    )
+    .select('client_building_id')
+    .single();
 
   if (error) {
     return res.status(500).json({ error: error.message });
   }
 
-  res.status(201).json({ buildingId: graph.buildingId });
+  res.status(201).json({ buildingId: data.client_building_id });
 });
 
-router.get('/:id', async (req, res) => {
-  const { data, error } = await supabase
+router.get('/:id', requireAuth, async (req, res) => {
+  const { data, error } = await req.supabase!
     .from('buildings')
     .select('graph_data')
-    .eq('id', req.params.id)
+    .eq('client_building_id', req.params.id)
     .single();
 
   if (error || !data) {
