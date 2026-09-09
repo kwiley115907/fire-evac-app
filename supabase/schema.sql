@@ -4,6 +4,25 @@
 
 create extension if not exists pgcrypto;
 
+-- A database created from the original single-tenant schema has
+-- `buildings.id text primary key` with no owner_id/client_building_id.
+-- `create table if not exists` below would be a no-op against that legacy
+-- shape, leaving the table without the columns the index/policies further
+-- down require — so move it out of the way first. Renaming (not dropping)
+-- preserves any legacy rows for manual backfill; those rows have no owner
+-- to backfill automatically since the legacy schema predates auth.
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'buildings'
+      and column_name = 'id' and data_type = 'text'
+  ) then
+    raise notice 'Legacy text-id buildings table detected — renaming to buildings_legacy for manual review/backfill.';
+    execute 'alter table buildings rename to buildings_legacy';
+  end if;
+end $$;
+
 create table if not exists buildings (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null references auth.users (id) on delete cascade,
@@ -16,19 +35,6 @@ create table if not exists buildings (
   updated_at timestamptz not null default now(),
   unique (owner_id, client_building_id)
 );
-
--- Backfill path for a database created before owner_id/client_building_id
--- existed (the original single-tenant schema used `id text primary key`).
--- Harmless no-op on a fresh database.
-do $$
-begin
-  if exists (
-    select 1 from information_schema.columns
-    where table_name = 'buildings' and column_name = 'id' and data_type = 'text'
-  ) then
-    raise notice 'Legacy text-id buildings table detected — manual data migration required before applying this schema.';
-  end if;
-end $$;
 
 create index if not exists buildings_owner_id_idx on buildings (owner_id);
 
