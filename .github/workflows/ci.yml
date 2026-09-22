@@ -19,14 +19,17 @@ jobs:
 
       - run: npm ci
 
-      - name: Build API
-        run: npm run build --workspace apps/api
+      - name: Typecheck
+        run: npm run typecheck
 
-      - name: Test API
-        run: npm test --workspace apps/api
+      - name: Lint
+        run: npm run lint
 
-      - name: Build web
+      - name: Test
+        run: npm test
+
+      - name: Build
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
-        run: npm run build --workspace apps/web
+        run: npm run build

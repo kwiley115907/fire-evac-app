@@ -1,36 +1,30 @@
-# Fire Evacuation App
+# Sentinel Grid — AI Fire Evacuation Planner
 
-Monorepo with two apps:
-- apps/web - Next.js frontend, deploys to Vercel
-- apps/api - Express backend, deploys to Render
+A single Next.js app (App Router) deploying to one Vercel project. Data
+store: Supabase (schema in `supabase/schema.sql`). Auth is Supabase Auth
+(email/password) via cookie-backed sessions (`@supabase/ssr`); every API
+route authorizes against the caller's own session, and Postgres Row Level
+Security enforces that a user can only ever read or write their own
+buildings.
 
-Data store: Supabase (schema in `supabase/schema.sql`). Auth is handled by
-Supabase Auth (email/password); the API authorizes every request against
-the caller's own Supabase access token, and Postgres Row Level Security
-enforces that a user can only ever read or write their own buildings.
-
-## What's wired up
-- Nearest-exit routing engine (Dijkstra, multi-floor, stair-aware), with
-  unit tests covering same-floor routing, multi-floor stairs, exits
-  excluded by non-evacuation-safe connectors, and nearest-of-multiple-exits.
-- Email/password auth (Supabase Auth) gating the API and the test console.
-- POST /buildings - save a BuildingGraph (requires a bearer token)
-- GET  /buildings/:id - fetch one (requires a bearer token, scoped to the
-  caller's own buildings via RLS)
-- POST /route - {buildingId, point, floor} -> nearest exit route (requires
-  a bearer token)
-- Test console at http://localhost:3000 signs in, then exercises both
-  endpoints against a hardcoded sample building.
-- Production hardening: input validation (zod), rate limiting, helmet
-  security headers, CORS allowlist, centralized error handling (no
-  unhandled-rejection crashes), structured request logging, graceful
-  shutdown, CI (build + test on every push).
-
-## Not built yet
-- Print upload + AI wall/room detection (the ingestion adapters)
-- Real building creation UI (currently API-only + one sample button)
-- Org/team accounts (current model is one owner per building, not shared
-  team access)
+## What's here
+- **Routing engine** — Dijkstra, multi-floor, stair-aware, unaltered from
+  the original tested implementation (`lib/evacuation-*.ts`), with the same
+  unit test suite (`lib/*.test.ts`).
+- **Building editor** (`/buildings/[id]`) — SVG-based multi-floor editor:
+  draw rooms, walls, doors, and stairs/elevators; mark exits and
+  evacuation-safe connectors; click any point to compute the live route to
+  the nearest exit.
+- **AI floor-plan detection** (`/api/ai-detect`) — upload a floor plan
+  image and Claude drafts rooms/walls/doors for that floor as an editable
+  overlay; nothing is saved until you review and accept it.
+- **AI evacuation assistant** (`/api/ai-chat`) — resolves a natural-language
+  room reference ("nearest exit from the server room") to a room id, then
+  hands off to the real Dijkstra engine for the actual route. The model
+  never invents a path.
+- Dashboard for creating/listing buildings, login/signup pages.
+- Production hardening carried over: input validation (zod), security
+  headers, structured route handlers, CI (build + test on every push).
 
 ## Supabase setup (one time)
 
@@ -38,66 +32,45 @@ enforces that a user can only ever read or write their own buildings.
 2. In the Supabase SQL editor, run the entire contents of
    `supabase/schema.sql`. It's idempotent, so re-running it is safe.
 3. In **Project Settings -> API**, note your Project URL and anon/public
-   key — you'll need both for `apps/api/.env` and `apps/web/.env.local`.
+   key.
 4. In **Authentication -> Providers**, email/password sign-up is enabled
-   by default. If you want to skip email confirmation while testing,
-   turn off "Confirm email" under Authentication -> Settings — remember
-   to turn it back on before real users sign up.
+   by default.
 
-## Local dev (two Termux sessions)
-
-Run these once, from the repo root:
+## Local dev
 
 ```bash
-cp apps/api/.env.example apps/api/.env
-cp apps/web/.env.local.example apps/web/.env.local
+cp .env.local.example .env.local
 ```
 
-Then edit both files and fill in your Supabase Project URL and anon key
-(`nano apps/api/.env` / `nano apps/web/.env.local`, or any editor).
-
-Install dependencies once from the repo root (installs both workspaces):
+Edit `.env.local` and fill in your Supabase Project URL, anon key, and an
+Anthropic API key (`ANTHROPIC_API_KEY`, server-side only — never exposed to
+the client).
 
 ```bash
 npm install
+npm run dev
 ```
 
-**Session 1 — API** (http://localhost:4000):
-
-```bash
-npm run dev:api
-```
-
-**Session 2 — web** (http://localhost:3000):
-
-```bash
-npm run dev:web
-```
-
-Open http://localhost:3000, sign up with an email/password, then use the
-two test-console buttons to save the sample building and find its nearest
-exit.
+Open http://localhost:3000, sign up, create a building, and start drawing.
 
 ## Running tests
 
 ```bash
-npm test --workspace apps/api
+npm test        # vitest — routing/geometry unit tests
+npm run typecheck
+npm run lint
 ```
 
 ## Production build (what CI runs)
 
 ```bash
-npm run build --workspace apps/api
-npm run build --workspace apps/web
+npm run build
 ```
 
 ## Deploying
 
-**API (Render)**: set the build command to `npm run build --workspace apps/api`,
-start command to `npm run start --workspace apps/api`, and set the env vars
-from `apps/api/.env.example` (`SUPABASE_URL`, `SUPABASE_ANON_KEY`,
-`CORS_ORIGIN` — set this to your deployed web app's URL, not `*`).
-
-**Web (Vercel)**: set the env vars from `apps/web/.env.local.example`
-(`NEXT_PUBLIC_API_URL` pointing at your deployed API, plus the two
-`NEXT_PUBLIC_SUPABASE_*` values).
+**Vercel**: one project, root directory. Set the env vars from
+`.env.local.example` (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+`ANTHROPIC_API_KEY`). `NEXT_PUBLIC_*` vars must be **Plaintext**, not
+Secret — Secret-typed vars aren't inlined into the client bundle at build
+time.
