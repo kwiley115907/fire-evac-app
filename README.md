@@ -71,6 +71,12 @@ buildings.
    key.
 4. In **Authentication -> Providers**, email/password sign-up is enabled
    by default.
+5. For the `/admin` console, run `supabase/admin.sql` after
+   `schema.sql`, then make yourself the first admin with the one-time
+   insert at the bottom of that file (put your own email in it; don't
+   commit it). Admins get an **Admin** link in the navbar and can see,
+   open and delete every building and grant or remove admin for any
+   account.
 
 ## Local dev
 
