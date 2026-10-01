@@ -1,7 +1,7 @@
 import { BuildingGraph, EvacuationRoute, Point, RouteStep } from './evacuation-types';
 import { distance, findRoomAtPoint, polygonCentroid } from './evacuation-geometry';
 
-const FLIGHT_COST_PER_FLOOR = 5;
+export const FLIGHT_COST_PER_FLOOR = 5;
 
 interface GraphNode {
   id: string;

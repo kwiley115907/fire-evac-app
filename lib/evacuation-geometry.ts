@@ -53,3 +53,14 @@ export function findRoomAtPoint(point: Point, floor: number, rooms: Room[]): Roo
 export function distance(a: Point, b: Point): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
+
+// Unsigned shoelace area, in the plan's square units (m²).
+export function polygonArea(polygon: Point[]): number {
+  let twice = 0;
+  for (let i = 0; i < polygon.length; i++) {
+    const p0 = polygon[i];
+    const p1 = polygon[(i + 1) % polygon.length];
+    twice += p0.x * p1.y - p1.x * p0.y;
+  }
+  return Math.abs(twice) / 2;
+}

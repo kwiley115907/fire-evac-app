@@ -1,6 +1,8 @@
-import type { EvacuationRoute } from '@/lib/evacuation-types';
+import type { BBox } from '@/lib/editor-utils';
 
-export type Tool = 'select' | 'room' | 'wall' | 'door' | 'connector' | 'route';
+export type Tool = 'select' | 'room' | 'wall' | 'door' | 'connector' | 'hazard' | 'route';
+
+export type ViewMode = 'plan' | 'flow' | '3d';
 
 export type Selected =
   | { kind: 'room'; id: string }
@@ -9,7 +11,11 @@ export type Selected =
   | { kind: 'connector'; id: string }
   | null;
 
-export interface RoutePreview {
-  route: EvacuationRoute;
-  floor: number;
+export type PickTarget = Exclude<Selected, null> | { kind: 'empty' };
+
+// Ask the canvas to fly its camera somewhere. `key` changes on every
+// request so asking for the same box twice still moves the camera.
+export interface CameraRequest {
+  box: BBox;
+  key: number;
 }

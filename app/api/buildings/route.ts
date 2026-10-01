@@ -14,13 +14,18 @@ export async function GET() {
 
   const { data, error } = await auth.supabase
     .from('buildings')
-    .select('id, name, updated_at')
+    .select('id, name, updated_at, graph_data')
     .order('updated_at', { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   return NextResponse.json(
-    data.map((row) => ({ id: row.id, name: row.name, updatedAt: row.updated_at }))
+    data.map((row) => ({
+      id: row.id,
+      name: row.name,
+      updatedAt: row.updated_at,
+      preview: buildingPreview(row.graph_data as BuildingGraph | null),
+    }))
   );
 }
 
@@ -57,4 +62,21 @@ export async function POST(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   return NextResponse.json({ id: data.id, name: data.name, updatedAt: data.updated_at }, { status: 201 });
+}
+
+// Just enough of the plan to draw a dashboard thumbnail: the lowest
+// floor's room outlines plus a few counts, not the whole graph.
+function buildingPreview(graph: BuildingGraph | null) {
+  if (!graph) return null;
+  const floors = [...(graph.floors ?? [])].sort((a, b) => a - b);
+  const ground = floors[0];
+  return {
+    floors: floors.length,
+    rooms: graph.rooms?.length ?? 0,
+    exits: graph.rooms?.filter((r) => r.isExit).length ?? 0,
+    outline: (graph.rooms ?? [])
+      .filter((r) => r.floor === ground)
+      .slice(0, 80)
+      .map((r) => ({ polygon: r.polygon, isExit: r.isExit })),
+  };
 }

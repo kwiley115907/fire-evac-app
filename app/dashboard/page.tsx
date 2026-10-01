@@ -4,14 +4,54 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { Session } from '@supabase/supabase-js';
+import type { Point } from '@/lib/evacuation-types';
 import { supabase } from '@/lib/supabase-client';
 import { NavBar } from '@/components/NavBar';
 import { SiteFooter } from '@/components/SiteFooter';
+import { Icon } from '@/components/icons';
 
 interface BuildingSummary {
   id: string;
   name: string;
   updatedAt: string;
+  preview: {
+    floors: number;
+    rooms: number;
+    exits: number;
+    outline: { polygon: Point[]; isExit: boolean }[];
+  } | null;
+}
+
+function Thumb({ preview }: { preview: BuildingSummary['preview'] }) {
+  const pts = preview?.outline.flatMap((r) => r.polygon) ?? [];
+  if (pts.length === 0) {
+    return (
+      <div className="building-thumb">
+        <Icon name="building" size={30} />
+      </div>
+    );
+  }
+  const minX = Math.min(...pts.map((p) => p.x));
+  const minY = Math.min(...pts.map((p) => p.y));
+  const w = Math.max(...pts.map((p) => p.x)) - minX || 1;
+  const h = Math.max(...pts.map((p) => p.y)) - minY || 1;
+  const pad = Math.max(w, h) * 0.08;
+  return (
+    <div className="building-thumb">
+      <svg viewBox={`${minX - pad} ${minY - pad} ${w + pad * 2} ${h + pad * 2}`} width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+        {preview!.outline.map((r, i) => (
+          <polygon
+            key={i}
+            points={r.polygon.map((p) => `${p.x},${p.y}`).join(' ')}
+            fill={r.isExit ? 'rgba(47,227,154,0.35)' : 'rgba(120,170,220,0.07)'}
+            stroke={r.isExit ? '#2fe39a' : 'rgba(160,200,240,0.45)'}
+            strokeWidth={1.2}
+            vectorEffect="non-scaling-stroke"
+          />
+        ))}
+      </svg>
+    </div>
+  );
 }
 
 export default function DashboardPage() {
@@ -59,12 +99,14 @@ export default function DashboardPage() {
     }
   }
 
-  if (session === undefined || (session && buildings === null)) {
+  if (session === undefined || (session && buildings === null && !error)) {
     return (
       <div className="shell">
         <NavBar />
         <main className="container">
-          <p style={{ padding: '3rem 0' }}>Loading…</p>
+          <p style={{ padding: '3rem 0', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <span className="spinner" /> Loading your buildings…
+          </p>
         </main>
       </div>
     );
@@ -75,9 +117,12 @@ export default function DashboardPage() {
       <NavBar />
       <main className="container">
         <div className="page-header">
-          <h1>Your buildings</h1>
+          <div>
+            <h1>Your buildings</h1>
+            <p>Open one to plan routes, run a drill, or audit its exits.</p>
+          </div>
           <button type="button" className="btn-primary" onClick={() => setCreating(true)}>
-            + New building
+            <Icon name="plus" size={16} /> New building
           </button>
         </div>
 
@@ -85,15 +130,10 @@ export default function DashboardPage() {
 
         {creating && (
           <div className="modal-overlay" onClick={() => !busy && setCreating(false)}>
-            <form className="modal glass-panel" onClick={(e) => e.stopPropagation()} onSubmit={handleCreate}>
+            <form className="modal" onClick={(e) => e.stopPropagation()} onSubmit={handleCreate}>
               <h3>Name this building</h3>
-              <p>You can add floors, rooms, and exits next.</p>
-              <input
-                autoFocus
-                placeholder="e.g. Riverside Office — Building A"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-              />
+              <p>Next you’ll draw rooms, add doors and stairs, and mark the exits.</p>
+              <input autoFocus placeholder="e.g. Riverside Office — Building A" value={newName} onChange={(e) => setNewName(e.target.value)} />
               <div className="modal-actions">
                 <button type="button" className="btn-ghost" onClick={() => setCreating(false)} disabled={busy}>
                   Cancel
@@ -107,20 +147,32 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {buildings && buildings.length === 0 ? (
-          <div className="empty-state glass-panel">
-            <p>No buildings yet. Create one to start mapping evacuation routes.</p>
-          </div>
-        ) : (
-          <div className="building-grid">
-            {buildings?.map((b) => (
-              <Link key={b.id} href={`/buildings/${b.id}`} className="building-card glass-panel">
-                <h3>{b.name}</h3>
-                <span className="meta">Updated {new Date(b.updatedAt).toLocaleString()}</span>
-              </Link>
-            ))}
-          </div>
-        )}
+        <div className="building-grid">
+          {buildings?.map((b) => (
+            <Link key={b.id} href={`/buildings/${b.id}`} className="building-card">
+              <Thumb preview={b.preview} />
+              <h3>{b.name}</h3>
+              <span className="meta">
+                {b.preview ? `${b.preview.floors} floor${b.preview.floors === 1 ? '' : 's'} · ${b.preview.rooms} rooms · ${b.preview.exits} exit${b.preview.exits === 1 ? '' : 's'}` : 'Empty'}
+              </span>
+              <span className="meta">Updated {new Date(b.updatedAt).toLocaleDateString()}</span>
+            </Link>
+          ))}
+          <button type="button" className="building-card new" onClick={() => setCreating(true)}>
+            <span className="feature-icon">
+              <Icon name="plus" size={20} />
+            </span>
+            New building
+          </button>
+          {buildings?.length === 0 && (
+            <Link href="/demo" className="building-card new">
+              <span className="feature-icon">
+                <Icon name="play" size={18} />
+              </span>
+              Explore the sample office first
+            </Link>
+          )}
+        </div>
       </main>
       <SiteFooter />
     </div>

@@ -8,13 +8,35 @@ Security enforces that a user can only ever read or write their own
 buildings.
 
 ## What's here
-- **Routing engine** — Dijkstra, multi-floor, stair-aware, unaltered from
-  the original tested implementation (`lib/evacuation-*.ts`), with the same
-  unit test suite (`lib/*.test.ts`).
-- **Building editor** (`/buildings/[id]`) — SVG-based multi-floor editor:
-  draw rooms, walls, doors, and stairs/elevators; mark exits and
-  evacuation-safe connectors; click any point to compute the live route to
-  the nearest exit.
+- **Three ways to see the way out** (`/buildings/[id]`, and the public
+  `/demo`):
+  - **Lifeline** — turn-by-turn guidance from any room. Turns come from the
+    plan geometry (relative to the way you come through each door), the
+    route walks square-on through doors and down the middle of corridors,
+    a countdown to safety is painted along the path, and every route has a
+    **Plan B** through a different exit (or a "No Plan B" warning). "Walk
+    it" flies the camera along each step.
+  - **Escape Field** — every room's way out at once: rooms tinted by time
+    to safety, animated streams that thicken where the building funnels
+    together, "NO WAY OUT" on rooms that can't reach an exit.
+  - **Floor Stack** — an exploded, orbitable 3D stack of every floor with
+    the route threaded down the stairwells (pure SVG, no WebGL).
+- **Drill mode** — set rooms on fire, block doors or stairs; every route
+  re-plans instantly. Burning rooms are never routed through (you can
+  always leave one), rooms next to a fire are treated as smoke-logged.
+- **Egress audit** — rooms with no way out, longest travel vs. a limit you
+  set, single-exit dependence, and load per exit.
+- **Escape-field engine** (`lib/evacuation-field.ts`) — reverse Dijkstra
+  from every exit over a door/stair-landing graph, run client-side on every
+  edit. Door-to-door costs are never longer than the original router's.
+- **Original routing engine** — Dijkstra over room centroids, multi-floor,
+  stair-aware (`lib/evacuation-router.ts`), still backing `/api/route` and
+  the AI assistant's server side, with its original tests.
+- **Building editor** — pan/zoom/pinch SVG canvas; draw rooms (corners
+  snap), walls, doors (snap onto the wall two rooms share) and
+  stairs/elevators; undo/redo; keyboard shortcuts (V R W D S F G, 1/2/3 for
+  views); the floor below shows as an onion-skin outline. Works on phones
+  with a bottom tool dock and a swipe-up guide sheet.
 - **AI floor-plan detection** (`/api/ai-detect`) — upload a floor plan
   image and Claude drafts rooms/walls/doors for that floor as an editable
   overlay; nothing is saved until you review and accept it.

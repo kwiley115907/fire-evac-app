@@ -1,64 +1,41 @@
 import Link from 'next/link';
 import { NavBar } from '@/components/NavBar';
 import { SiteFooter } from '@/components/SiteFooter';
+import { Icon, type IconName } from '@/components/icons';
+import { LiveDemo } from '@/components/live/LiveDemo';
+import { DrillArt, FieldArt, LifelineArt, StackArt } from '@/components/live/ModeArt';
 
-const DEMO_GRID = [
-  '..........WW',
-  '..RRRR....WW',
-  '..R..R....WW',
-  'SR..R..DDD.W',
-  '..R..R....EE',
-  '..RRRR....EE',
-  '..........WW',
-].join('');
+const MODES = [
+  {
+    n: '01',
+    icon: 'route' as IconName,
+    title: 'Lifeline',
+    art: <LifelineArt />,
+    desc: 'Turn-by-turn from any room — real left/right turns from your plan geometry, a live countdown painted along the path, and a Plan B through a different exit.',
+  },
+  {
+    n: '02',
+    icon: 'flow' as IconName,
+    title: 'Escape Field',
+    art: <FieldArt />,
+    desc: 'Every room’s way out at once. Streams thicken where the building funnels together, so bottleneck doors and slow rooms jump out before a drill ever does.',
+  },
+  {
+    n: '03',
+    icon: 'layers' as IconName,
+    title: 'Floor Stack',
+    art: <StackArt />,
+    desc: 'An exploded, orbitable 3D view of the whole building with the route threaded down through the stairwells. Tap any room on any floor.',
+  },
+];
 
-function DemoGrid() {
-  const cells = DEMO_GRID.split('');
-  return (
-    <div className="route-demo-grid">
-      {cells.map((c, i) => {
-        let cls = 'cell';
-        if (c === 'W') cls += ' wall';
-        if (c === 'R' || c === 'D') cls += ' path';
-        if (c === 'E') cls += ' exit';
-        if (c === 'S') cls += ' start';
-        return <div key={i} className={cls} />;
-      })}
-    </div>
-  );
-}
-
-const FEATURES = [
-  {
-    icon: '🧭',
-    title: 'Dijkstra-verified routing',
-    desc: 'Every route is computed by a tested, multi-floor shortest-path engine over your real room graph — never guessed by AI.',
-  },
-  {
-    icon: '🛰️',
-    title: 'AI floor-plan detection',
-    desc: 'Upload a floor plan image and Claude drafts rooms, walls, and doors for you to review and adjust before saving.',
-  },
-  {
-    icon: '💬',
-    title: 'Natural-language assistant',
-    desc: '"Nearest exit from the server room?" — the assistant resolves the room and hands off to the real routing engine.',
-  },
-  {
-    icon: '🏢',
-    title: 'Multi-floor aware',
-    desc: 'Stairwells and elevators connect floors with configurable evacuation-safety, so unsafe elevators are never routed through.',
-  },
-  {
-    icon: '🔒',
-    title: 'Private by default',
-    desc: 'Every building is row-level-security scoped to your account in Postgres — not just filtered in application code.',
-  },
-  {
-    icon: '⚡',
-    title: 'Instant recompute',
-    desc: 'Move a wall, add a door, or mark a new exit — click anywhere on the plan and see the updated route immediately.',
-  },
+const FEATURES: { icon: IconName; title: string; desc: string }[] = [
+  { icon: 'shield', title: 'Egress audit', desc: 'Flags rooms with no way out, travel distance over your limit, rooms that depend on a single exit, and how load spreads across exits.' },
+  { icon: 'sparkle', title: 'AI floor-plan detection', desc: 'Upload a floor plan image and Claude drafts rooms, walls and doors for you to review before anything is saved.' },
+  { icon: 'chat', title: 'Ask in plain English', desc: '“Way out of the server room?” The assistant finds the room — the routing engine draws the path. The model never invents one.' },
+  { icon: 'stairs', title: 'Stair-aware, multi-floor', desc: 'Stairs and lifts link floors; anything not safe to use in an evacuation is never routed through.' },
+  { icon: 'door', title: 'Doors that snap', desc: 'Click two rooms and the door lands on the wall they share. Corners snap too, so plans stay clean.' },
+  { icon: 'clock', title: 'Instant, offline-fast', desc: 'Routing runs in your browser on every edit — no waiting on a server to see what a new wall does.' },
 ];
 
 export default function LandingPage() {
@@ -67,32 +44,93 @@ export default function LandingPage() {
       <NavBar />
       <main>
         <section className="hero">
-          <div className="container">
-            <span className="eyebrow">
-              <span className="pulse-dot" />
-              Real-time evacuation intelligence
-            </span>
-            <h1>
-              Plan the fastest way out,
-              <br />
-              <span className="accent">verified, not vibes.</span>
-            </h1>
-            <p className="lead">
-              Sentinel Grid pairs a tested multi-floor routing engine with AI floor-plan
-              detection and a conversational assistant — so every evacuation route is both
-              smart and provably correct.
-            </p>
-            <div className="hero-actions">
-              <Link href="/signup" className="btn btn-primary">
-                Start planning free
-              </Link>
-              <Link href="/login" className="btn btn-ghost">
-                Sign in
-              </Link>
+          <div className="container hero-grid">
+            <div>
+              <span className="eyebrow">
+                <span className="pulse-dot" />
+                Evacuation planning, reimagined
+              </span>
+              <h1>
+                See every way out.
+                <br />
+                <span className="go">Before you need one.</span>
+              </h1>
+              <p className="lead">
+                Draw your building once. Sentinel Grid computes the fastest escape from every room on every floor, re-plans
+                instantly around fire and blocked doors, and shows it three ways no other planner can.
+              </p>
+              <div className="hero-actions">
+                <Link href="/demo" className="btn btn-primary btn-lg">
+                  <Icon name="play" size={16} /> Try the live demo
+                </Link>
+                <Link href="/signup" className="btn btn-ghost btn-lg">
+                  Start free
+                </Link>
+              </div>
+              <div className="hero-proof">
+                <div>
+                  <strong>3</strong>
+                  <span>ways to see the route</span>
+                </div>
+                <div>
+                  <strong>Live</strong>
+                  <span>re-plans as you edit</span>
+                </div>
+                <div>
+                  <strong>Plan B</strong>
+                  <span>on every route</span>
+                </div>
+              </div>
             </div>
+            <LiveDemo />
+          </div>
+        </section>
 
-            <div className="hero-visual glass-panel">
-              <DemoGrid />
+        <section className="section" id="views">
+          <div className="container">
+            <div className="section-title">
+              <span className="section-kicker">Three views, one engine</span>
+              <h2>Not a map with an arrow on it</h2>
+              <p>Every view is drawn from the same verified shortest-path engine — switch between them in one tap.</p>
+            </div>
+            <div className="modes">
+              {MODES.map((m) => (
+                <article key={m.title} className="card mode-card">
+                  <div className="mode-art">{m.art}</div>
+                  <span className="mode-num">{m.n}</span>
+                  <h3>
+                    <Icon name={m.icon} size={18} /> {m.title}
+                  </h3>
+                  <p>{m.desc}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="section">
+          <div className="container split">
+            <div>
+              <span className="section-kicker">Drill mode</span>
+              <h2>Drop a fire. Watch the building re-route itself.</h2>
+              <p>
+                Tap a room to set it alight, or block a door or stairwell. Every route in the building is re-planned on the
+                spot — and anyone already following a route gets told exactly where they’re going instead.
+              </p>
+              <ul className="ticks">
+                <li>
+                  <Icon name="check" size={18} /> Burning rooms are never routed through — but you can always get out of one
+                </li>
+                <li>
+                  <Icon name="check" size={18} /> Rooms beside a fire are treated as smoke-logged and avoided when there’s a better way
+                </li>
+                <li>
+                  <Icon name="check" size={18} /> “No Plan B” warnings show where one lost exit traps people
+                </li>
+              </ul>
+            </div>
+            <div className="card drill-art">
+              <DrillArt />
             </div>
           </div>
         </section>
@@ -100,17 +138,34 @@ export default function LandingPage() {
         <section className="section">
           <div className="container">
             <div className="section-title">
-              <h2>Built for how buildings actually work</h2>
-              <p>Not a pixel painter. A real graph of rooms, doors, stairs, and exits.</p>
+              <span className="section-kicker">Built for real buildings</span>
+              <h2>A graph of rooms, doors and stairs — not a drawing</h2>
             </div>
             <div className="feature-grid">
               {FEATURES.map((f) => (
-                <div key={f.title} className="feature-card glass-panel">
-                  <div className="feature-icon">{f.icon}</div>
+                <div key={f.title} className="card feature-card">
+                  <div className="feature-icon">
+                    <Icon name={f.icon} size={20} />
+                  </div>
                   <h3>{f.title}</h3>
                   <p>{f.desc}</p>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="container">
+          <div className="cta-band">
+            <h2>Your building’s way out, mapped tonight.</h2>
+            <p>Free to start. No credit card. Your plans stay private to your account.</p>
+            <div className="hero-actions">
+              <Link href="/signup" className="btn btn-primary btn-lg">
+                Start planning free
+              </Link>
+              <Link href="/demo" className="btn btn-ghost btn-lg">
+                Explore the demo
+              </Link>
             </div>
           </div>
         </section>

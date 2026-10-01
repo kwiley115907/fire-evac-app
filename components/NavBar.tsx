@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase-client';
+import { BrandMark } from '@/components/live/ModeArt';
 
 export function NavBar() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
@@ -18,18 +19,17 @@ export function NavBar() {
     <header className="navbar">
       <div className="container navbar-inner">
         <Link href="/" className="brand">
-          <span className="brand-mark">SG</span>
+          <BrandMark />
           Sentinel Grid
         </Link>
         <nav className="nav-links">
+          <Link href="/demo" className="hide-xs">
+            Live demo
+          </Link>
           {session ? (
             <>
               <Link href="/dashboard">Dashboard</Link>
-              <button
-                type="button"
-                className="btn-sm"
-                onClick={() => supabase.auth.signOut()}
-              >
+              <button type="button" className="btn-ghost btn-sm" onClick={() => supabase.auth.signOut()}>
                 Sign out
               </button>
             </>
