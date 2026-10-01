@@ -23,6 +23,9 @@ export interface StackViewProps {
   onPickRoom: (roomId: string, point: Point, floor: number) => void;
   autoRotate?: boolean;
   compact?: boolean;
+  // AR-scanned walks; `level` is a fractional floor index (0 = lowest),
+  // so stair runs show as ramps between plates.
+  overlays?: { id: string; active: boolean; points: { x: number; y: number; level: number }[] }[];
 }
 
 const DEG = Math.PI / 180;
@@ -37,6 +40,7 @@ export function StackView({
   onPickRoom,
   autoRotate = false,
   compact = false,
+  overlays = [],
 }: StackViewProps) {
   const uid = useId().replace(/:/g, '');
   const [yaw, setYaw] = useState(-32);
@@ -259,6 +263,24 @@ export function StackView({
                       />
                     );
                   })}
+            </g>
+          );
+        })}
+
+        {overlays.map((o) => {
+          if (o.points.length < 2) return null;
+          const d = o.points
+            .map((p, i) => {
+              const q = project(p, p.level * gap);
+              return `${i ? 'L' : 'M'}${q.x.toFixed(2)} ${q.y.toFixed(2)}`;
+            })
+            .join(' ');
+          const first = project(o.points[0], o.points[0].level * gap);
+          return (
+            <g key={o.id} pointerEvents="none" opacity={o.active ? 1 : 0.65}>
+              <path d={d} fill="none" stroke={C.signal} strokeOpacity={0.2} strokeWidth={footprint * 0.024} strokeLinecap="round" strokeLinejoin="round" />
+              <path d={d} fill="none" stroke={C.signal} strokeWidth={footprint * (o.active ? 0.008 : 0.005)} strokeLinecap="round" strokeLinejoin="round" filter={`url(#${uid}-glow)`} />
+              <circle cx={first.x} cy={first.y} r={footprint * 0.01} fill={C.signal} stroke="#fff" strokeWidth={footprint * 0.0025} />
             </g>
           );
         })}

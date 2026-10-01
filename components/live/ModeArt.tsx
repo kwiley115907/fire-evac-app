@@ -153,3 +153,56 @@ export function BrandMark({ size = 30 }: { size?: number }) {
     </svg>
   );
 }
+
+export function ScanArt() {
+  // A phone filming a corridor with the trail painted on the floor, and
+  // the same walk rebuilt in 3D beside it.
+  return (
+    <svg viewBox="0 0 420 260" aria-hidden="true" style={{ width: '100%', height: 'auto', display: 'block' }}>
+      <defs>
+        <linearGradient id="sa-floor" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#0b1017" />
+          <stop offset="1" stopColor="#1a2431" />
+        </linearGradient>
+        <linearGradient id="sa-path" x1="0" y1="1" x2="1" y2="0">
+          <stop offset="0" stopColor="#ff5a36" />
+          <stop offset="0.5" stopColor="#ffb547" />
+          <stop offset="1" stopColor="#2fe39a" />
+        </linearGradient>
+      </defs>
+      <rect x="22" y="14" width="136" height="232" rx="22" fill="#05080c" stroke="rgba(160,200,240,0.35)" strokeWidth="2" />
+      <rect x="30" y="26" width="120" height="208" rx="14" fill="url(#sa-floor)" />
+      <path d="M30 120 L72 96 L108 96 L150 120" fill="none" stroke="rgba(160,200,240,0.2)" />
+      <path d="M72 96 V40 M108 96 V40" stroke="rgba(160,200,240,0.14)" />
+      {[
+        [90, 226, 7],
+        [90, 196, 6],
+        [91, 170, 5],
+        [93, 148, 4.2],
+        [96, 130, 3.6],
+        [99, 116, 3],
+        [101, 106, 2.4],
+      ].map(([x, y, r], i) => (
+        <circle key={i} cx={x} cy={y} r={r} fill="#2fe39a" opacity={1 - i * 0.1} />
+      ))}
+      <circle cx="90" cy="130" r="14" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" />
+      <rect x="38" y="34" width="38" height="13" rx="6.5" fill="rgba(0,0,0,0.6)" />
+      <circle cx="46" cy="40.5" r="2.6" fill="#ff5a36" />
+      <text x="51" y="44" fontSize="7.5" fontWeight="800" fill="#fff" fontFamily="system-ui, sans-serif">
+        REC
+      </text>
+      <circle cx="90" cy="212" r="10" fill="#ff5a36" stroke="#fff" strokeWidth="2.5" />
+
+      <path d="M178 130 h28 M198 122 l9 8 -9 8" fill="none" stroke="rgba(160,200,240,0.4)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+
+      {[78, 150, 222].map((y) => (
+        <path key={y} d={`M226 ${y} L318 ${y - 34} L404 ${y} L312 ${y + 34} Z`} fill="rgba(22,34,48,0.5)" stroke="rgba(76,201,255,0.28)" />
+      ))}
+      <path d="M262 70 L300 56 L344 72 L352 92 L326 116 L352 140 L326 164 L352 188 L380 206" fill="none" stroke="#2fe39a" strokeOpacity="0.22" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M262 70 L300 56 L344 72 L352 92 L326 116 L352 140 L326 164 L352 188 L380 206" fill="none" stroke="url(#sa-path)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M262 70 L300 56 L344 72 L352 92 L326 116 L352 140 L326 164 L352 188 L380 206" fill="none" stroke="#fff" strokeWidth="1.6" strokeDasharray="0.1 9" strokeLinecap="round" className="art-march" />
+      <circle cx="262" cy="70" r="5" fill="#ff5a36" stroke="#fff" strokeWidth="1.5" />
+      <circle cx="380" cy="206" r="5" fill="#2fe39a" stroke="#fff" strokeWidth="1.5" />
+    </svg>
+  );
+}

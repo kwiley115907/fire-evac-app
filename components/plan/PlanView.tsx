@@ -36,6 +36,8 @@ export interface PlanViewProps {
   onPick: (target: PickTarget, point: Point) => void;
   onFloorJump?: (floor: number) => void;
   compact?: boolean;
+  // Walked routes recorded with AR Scan, already cut to this floor.
+  scanPaths?: { id: string; points: Point[]; active: boolean; start: boolean }[];
 }
 
 function pathD(points: Point[]): string {
@@ -109,6 +111,7 @@ export function PlanView(props: PlanViewProps) {
     onPick,
     onFloorJump,
     compact = false,
+    scanPaths = [],
   } = props;
 
   const uid = useId().replace(/:/g, '');
@@ -378,6 +381,27 @@ export function PlanView(props: PlanViewProps) {
             </g>
           );
         })}
+
+        {/* AR-scanned walks: the route someone actually took. */}
+        {scanPaths.map((sp) =>
+          sp.points.length < 2 ? null : (
+            <g key={sp.id} pointerEvents="none" opacity={sp.active ? 1 : 0.6}>
+              <path d={pathD(sp.points)} fill="none" stroke={C.signal} strokeOpacity={0.18} strokeWidth={sp.active ? 1.3 : 0.8} strokeLinecap="round" strokeLinejoin="round" />
+              <path d={pathD(sp.points)} fill="none" stroke={C.signal} strokeWidth={sp.active ? 0.3 : 0.18} strokeLinecap="round" strokeLinejoin="round" />
+              {sp.active && (
+                <path d={pathD(sp.points)} fill="none" stroke="#fff" strokeWidth={0.12} strokeDasharray="0.01 0.9" strokeLinecap="round" className="life-dash" />
+              )}
+              {sp.start && (
+                <g transform={`translate(${sp.points[0].x} ${sp.points[0].y})`}>
+                  <circle r={0.75} fill="none" stroke={C.signal} strokeWidth={0.1}>
+                    {sp.active && <animate attributeName="r" values="0.6;1.8" dur="1.6s" repeatCount="indefinite" />}
+                  </circle>
+                  <circle r={0.42} fill={C.signal} stroke="#fff" strokeWidth={0.1} />
+                </g>
+              )}
+            </g>
+          )
+        )}
 
         {/* Plan B: quieter, dashed, no comet. */}
         {altHere.map((p, i) => (

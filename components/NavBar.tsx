@@ -23,6 +23,9 @@ export function NavBar() {
           Sentinel Grid
         </Link>
         <nav className="nav-links">
+          <Link href="/demo?scan=1" className="hide-xs">
+            AR Scan
+          </Link>
           <Link href="/demo" className="hide-xs">
             Live demo
           </Link>

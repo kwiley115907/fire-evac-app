@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import type { BuildingGraph, DoorOpening, EvacuationRoute, Point, Room, WallSegment } from '@/lib/evacuation-types';
+import type { BuildingGraph, DoorOpening, EvacuationRoute, Point, Room, RouteScan, WallSegment } from '@/lib/evacuation-types';
 import { findRoomAtPoint } from '@/lib/evacuation-geometry';
-import { focusBox, nextId, sharedBoundaryPoint, snapPoint } from '@/lib/editor-utils';
+import { contentBounds, focusBox, nextId, sharedBoundaryPoint, snapPoint } from '@/lib/editor-utils';
+import { DEFAULT_STORY_HEIGHT, newScanId, placedFloorPaths, placePoint, simplifyScan, straightenRotation, type ScanStep } from '@/lib/ar-scan';
 import {
   auditEgress,
   computeEscapeField,
@@ -27,12 +28,15 @@ import { FloorRail, ToolRail, TOOLS, toolsFor, ViewSwitch } from './ToolRail';
 import { PropertiesPanel } from './PropertiesPanel';
 import { ChatPanel } from './ChatPanel';
 import { AiDetectModal } from './AiDetectModal';
+import { ArScanner, type ScanCapture } from '@/components/scan/ArScanner';
+import { ScanReview } from '@/components/scan/ScanReview';
+import { PlacementBar, PlacementPanel, ScanList } from '@/components/scan/ScanPanels';
 import type { CameraRequest, PickTarget, Selected, Tool, ViewMode } from './types';
 
 const CONNECTOR_HIT_RADIUS = 0.9;
 const DEFAULT_LIMIT_METERS = 61; // 200 ft — a common unsprinklered exit-access limit; adjustable in the audit.
 
-type Tab = 'guide' | 'inspect' | 'audit' | 'ask';
+type Tab = 'guide' | 'inspect' | 'audit' | 'scans' | 'ask';
 interface Toast {
   text: string;
   tone: 'go' | 'fire' | 'info';
@@ -50,12 +54,14 @@ export function BuildingEditor({
   initialGraph,
   demo = false,
   initialRoute = null,
+  openScanner = false,
 }: {
   buildingId: string;
   initialName: string;
   initialGraph: BuildingGraph;
   demo?: boolean;
   initialRoute?: { point: Point; floor: number } | null;
+  openScanner?: boolean;
 }) {
   const [history, setHistory] = useState<History>({ past: [], present: initialGraph, future: [] });
   const graph = history.present;
@@ -81,6 +87,11 @@ export function BuildingEditor({
   const [dirty, setDirty] = useState(false);
   const [showAiDetect, setShowAiDetect] = useState(false);
   const [namingRoom, setNamingRoom] = useState<string | null>(null);
+  const [scannerOpen, setScannerOpen] = useState(openScanner);
+  const [review, setReview] = useState<{ scan: RouteScan; steps?: ScanStep[]; isNew: boolean; sample?: boolean } | null>(null);
+  const [placing, setPlacing] = useState<RouteScan | null>(null);
+  const [hiddenScans, setHiddenScans] = useState<Set<string>>(() => new Set());
+  const [videos, setVideos] = useState<Record<string, { url: string; mime: string }>>({});
   const toastTimer = useRef<number | null>(null);
 
   // ---------- derived ----------
@@ -286,8 +297,101 @@ export function BuildingEditor({
     return 'Door';
   }
 
+  // ---------- AR Scan ----------
+  const scans = useMemo(() => graph.scans ?? [], [graph.scans]);
+
+  function upsertScan(scan: RouteScan) {
+    const exists = scans.some((x) => x.id === scan.id);
+    if (!exists && scans.length >= 30) {
+      showToast('This building already has 30 scans — delete one first', 'fire');
+      return false;
+    }
+    updateGraph({ ...graph, scans: exists ? scans.map((x) => (x.id === scan.id ? scan : x)) : [...scans, scan] });
+    return true;
+  }
+
+  function onCaptured(capture: ScanCapture) {
+    setScannerOpen(false);
+    const scan: RouteScan = {
+      id: newScanId(),
+      name: capture.sample
+        ? 'Sample walk'
+        : `Route scan · ${new Date().toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`,
+      createdAt: new Date().toISOString(),
+      source: capture.source,
+      durationSeconds: capture.durationSeconds,
+      storyHeight: DEFAULT_STORY_HEIGHT,
+      points: simplifyScan(capture.points),
+    };
+    if (capture.video) setVideos((v) => ({ ...v, [scan.id]: capture.video! }));
+    setReview({ scan, steps: capture.steps, isNew: true, sample: capture.sample });
+  }
+
+  function startPlacing(scan: RouteScan) {
+    const box = contentBounds(graph, floor);
+    setReview(null);
+    setPlacing({
+      ...scan,
+      placement: scan.placement ?? {
+        floor,
+        origin: box ? { x: (box.minX + box.maxX) / 2, y: (box.minY + box.maxY) / 2 } : { x: 12, y: 8 },
+        rotationDeg: (straightenRotation(scan.points, 0) + 360) % 360,
+        scale: 1,
+      },
+    });
+    if (scan.placement) setFloor(scan.placement.floor);
+    if (view === '3d') setView('plan');
+    setTab('scans');
+    setSheetOpen(false); // phones: keep the plan visible to tap on
+    showToast('Tap the plan where you started recording', 'info');
+  }
+
+  function savePlacement() {
+    if (!placing) return;
+    if (!upsertScan(placing)) return;
+    setHiddenScans((h) => {
+      const next = new Set(h);
+      next.delete(placing.id);
+      return next;
+    });
+    setPlacing(null);
+    setSheetOpen(false);
+    setView('3d');
+    showToast(`${placing.name} placed — here it is in 3D`, 'go');
+  }
+
+  function deleteScan(id: string) {
+    updateGraph({ ...graph, scans: scans.filter((x) => x.id !== id) });
+    const v = videos[id];
+    if (v) URL.revokeObjectURL(v.url);
+  }
+
+  const shownScans = (placing ? [...scans.filter((x) => x.id !== placing.id), placing] : scans).filter(
+    (x) => x.placement && (!hiddenScans.has(x.id) || x.id === placing?.id)
+  );
+  const sortedFloors = [...graph.floors].sort((a, b) => a - b);
+  const planScans = shownScans.flatMap((x) =>
+    placedFloorPaths(x, graph.floors)
+      .map((run, i) => ({ ...run, i }))
+      .filter((run) => run.floor === floor)
+      .map((run) => ({ id: `${x.id}-${run.i}`, points: run.points, active: x.id === placing?.id, start: run.i === 0 }))
+  );
+  const stackScans = shownScans.map((x) => {
+    const base = Math.max(0, sortedFloors.indexOf(x.placement!.floor));
+    return {
+      id: x.id,
+      active: x.id === placing?.id,
+      points: x.points.map((p) => ({ ...placePoint(p, x.placement!), level: base + p.h / x.storyHeight })),
+    };
+  });
+
   // ---------- canvas picks ----------
   function handlePick(target: PickTarget, raw: Point) {
+    if (placing?.placement) {
+      setPlacing({ ...placing, placement: { ...placing.placement, origin: raw, floor } });
+      return;
+    }
+
     if (tool === 'route') {
       if (findRoomAtPoint(raw, floor, graph.rooms)) startRoute(raw, floor);
       else showToast('Tap inside a room to plan its way out', 'info');
@@ -425,6 +529,7 @@ export function BuildingEditor({
       }
       if (mod || e.altKey) return;
       if (e.key === 'Escape') {
+        setPlacing(null);
         resetDrafts();
         setSelected(null);
         setPlaying(false);
@@ -506,7 +611,9 @@ export function BuildingEditor({
 
   // ---------- render ----------
   const activeTool = TOOLS.find((t) => t.id === tool)!;
-  const hint = draftDoor
+  const hint = placing
+    ? 'Tap where you started recording, then turn it to line up with the walls'
+    : draftDoor
     ? 'Now click the room on the other side of the door'
     : tool === 'room' && draftPolygon.length > 0
       ? `${draftPolygon.length} corner${draftPolygon.length === 1 ? '' : 's'} · click the first corner or press Enter to close it`
@@ -518,6 +625,7 @@ export function BuildingEditor({
     { id: 'guide', label: 'Guide' },
     { id: 'inspect', label: 'Inspect' },
     { id: 'audit', label: 'Audit' },
+    { id: 'scans', label: 'Scans' },
     ...(demo ? [] : [{ id: 'ask' as Tab, label: 'Ask AI' }]),
   ];
 
@@ -534,6 +642,10 @@ export function BuildingEditor({
           </div>
         </div>
         <div className="deck-top-right">
+          <button type="button" className="btn-ghost btn-sm scan-top" onClick={() => setScannerOpen(true)} title="AR Scan">
+            <Icon name="camera" size={16} />
+            <span className="hide-sm">AR Scan</span>
+          </button>
           {nHazards > 0 && (
             <button type="button" className="scenario-chip" onClick={() => setHazards(NO_HAZARDS)} title="Clear all drill hazards">
               <Icon name="fire" size={15} />
@@ -569,6 +681,7 @@ export function BuildingEditor({
           view={view}
           onChange={changeTool}
           onDetect={demo ? undefined : () => setShowAiDetect(true)}
+          onScan={() => setScannerOpen(true)}
           draftCount={draftPolygon.length}
           onFinishRoom={finishRoom}
           onCancelDraft={() => setDraftPolygon([])}
@@ -583,6 +696,7 @@ export function BuildingEditor({
               limitSeconds={limitSeconds}
               route={shownRoute}
               focusFloor={floor}
+              overlays={stackScans}
               onPickRoom={(roomId, point, f) => {
                 if (tool === 'hazard') applyHazard('rooms', roomId, graph.rooms.find((r) => r.id === roomId)?.name || 'Room');
                 else {
@@ -612,6 +726,7 @@ export function BuildingEditor({
               cameraRequest={cameraRequest}
               onPick={handlePick}
               onFloorJump={setFloor}
+              scanPaths={planScans}
             />
           )}
 
@@ -632,10 +747,14 @@ export function BuildingEditor({
             hazardFloors={hazardFloors}
           />
 
-          {view === 'flow' && <FlowLegend limitSeconds={limitSeconds} />}
+          {view === 'flow' && !placing && <FlowLegend limitSeconds={limitSeconds} />}
+
+          {placing && view !== '3d' && (
+            <PlacementBar scan={placing} onChange={setPlacing} onSave={savePlacement} onCancel={() => setPlacing(null)} />
+          )}
 
           {toast && (
-            <div className={`toast ${toast.tone}`} key={toast.key} role="status">
+            <div className={`toast ${toast.tone}${placing ? ' raised' : ''}`} key={toast.key} role="status">
               <Icon name={toast.tone === 'fire' ? 'fire' : toast.tone === 'go' ? 'route' : 'sparkle'} size={16} />
               {toast.text}
             </div>
@@ -720,6 +839,33 @@ export function BuildingEditor({
                 hazardCount={nHazards}
               />
             )}
+            {tab === 'scans' &&
+              (placing ? (
+                <PlacementPanel
+                  scan={placing}
+                  floors={graph.floors}
+                  onChange={setPlacing}
+                  onFloor={setFloor}
+                  onSave={savePlacement}
+                  onCancel={() => setPlacing(null)}
+                />
+              ) : (
+                <ScanList
+                  scans={scans}
+                  hidden={hiddenScans}
+                  onNew={() => setScannerOpen(true)}
+                  onOpen={(scan) => setReview({ scan, isNew: false })}
+                  onPlace={startPlacing}
+                  onToggle={(scan) =>
+                    setHiddenScans((h) => {
+                      const next = new Set(h);
+                      if (next.has(scan.id)) next.delete(scan.id);
+                      else next.add(scan.id);
+                      return next;
+                    })
+                  }
+                />
+              ))}
             {tab === 'ask' && !demo && (
               <ChatPanel
                 buildingId={buildingId}
@@ -734,6 +880,44 @@ export function BuildingEditor({
           </div>
         </aside>
       </div>
+
+      {scannerOpen && <ArScanner onClose={() => setScannerOpen(false)} onComplete={onCaptured} />}
+
+      {review && (
+        <ScanReview
+          key={review.scan.id}
+          scan={review.scan}
+          steps={review.steps}
+          video={videos[review.scan.id]}
+          isNew={review.isNew}
+          sample={review.sample}
+          canPlace={graph.rooms.length > 0}
+          onPlace={startPlacing}
+          onSave={(scan) => {
+            if (upsertScan(scan)) {
+              setReview(null);
+              setTab('scans');
+              setSheetOpen(true);
+            }
+          }}
+          onDiscard={() => {
+            if (!review.isNew) deleteScan(review.scan.id);
+            else {
+              const v = videos[review.scan.id];
+              if (v) URL.revokeObjectURL(v.url);
+            }
+            setReview(null);
+          }}
+          onClose={(scan) => {
+            // Closing a fresh scan keeps it rather than throwing a walk away.
+            if (review.isNew && upsertScan(scan)) {
+              setTab('scans');
+              showToast('Scan kept under Scans', 'info');
+            }
+            setReview(null);
+          }}
+        />
+      )}
 
       {showAiDetect && (
         <AiDetectModal

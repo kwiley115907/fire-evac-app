@@ -22,6 +22,7 @@ export function ToolRail({
   view,
   onChange,
   onDetect,
+  onScan,
   draftCount,
   onFinishRoom,
   onCancelDraft,
@@ -30,6 +31,7 @@ export function ToolRail({
   view: ViewMode;
   onChange: (tool: Tool) => void;
   onDetect?: () => void;
+  onScan?: () => void;
   draftCount: number;
   onFinishRoom: () => void;
   onCancelDraft: () => void;
@@ -54,9 +56,18 @@ export function ToolRail({
           </button>
         </span>
       ))}
-      {view === 'plan' && onDetect && (
+      {onScan && (
         <span className="tool-slot">
           <span className="tool-sep" aria-hidden="true" />
+          <button type="button" className="tool tool-scan" onClick={onScan} title="AR Scan: walk a route and get it in 3D" aria-label="AR Scan">
+            <Icon name="camera" size={20} />
+            <span className="tool-label">AR Scan</span>
+          </button>
+        </span>
+      )}
+      {view === 'plan' && onDetect && (
+        <span className="tool-slot">
+          {!onScan && <span className="tool-sep" aria-hidden="true" />}
           <button type="button" className="tool tool-ai" onClick={onDetect} title="Detect rooms from a floor-plan image" aria-label="Detect from image">
             <Icon name="sparkle" size={20} />
             <span className="tool-label">Detect</span>

@@ -38,6 +38,31 @@ const verticalConnectorSchema = z.object({
   name: z.string().max(120).optional(),
 });
 
+const scanPointSchema = z.object({
+  x: z.number().finite(),
+  y: z.number().finite(),
+  h: z.number().finite(),
+  t: z.number().finite().min(0),
+});
+
+const routeScanSchema = z.object({
+  id: z.string().min(1).max(100),
+  name: z.string().max(80),
+  createdAt: z.string().max(40),
+  source: z.enum(['ar', 'motion']),
+  durationSeconds: z.number().finite().min(0),
+  storyHeight: z.number().finite().positive().max(20),
+  points: z.array(scanPointSchema).min(1).max(2000),
+  placement: z
+    .object({
+      floor: z.number().int(),
+      origin: pointSchema,
+      rotationDeg: z.number().finite(),
+      scale: z.number().finite().positive().max(10),
+    })
+    .optional(),
+});
+
 export const buildingGraphSchema = z.object({
   buildingId: z
     .string()
@@ -49,6 +74,7 @@ export const buildingGraphSchema = z.object({
   doors: z.array(doorOpeningSchema),
   rooms: z.array(roomSchema),
   connectors: z.array(verticalConnectorSchema),
+  scans: z.array(routeScanSchema).max(30).optional(),
 });
 
 export const routeRequestSchema = z.object({

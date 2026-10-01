@@ -51,6 +51,42 @@ export interface BuildingGraph {
   doors: DoorOpening[];
   rooms: Room[];
   connectors: VerticalConnector[];
+  // Routes walked and recorded with AR Scan. Display-only: the routing
+  // engine never reads them.
+  scans?: RouteScan[];
+}
+
+// A recorded point in scan space, metres from where recording started:
+// x to the right, y forward (the way the camera first faced), h up.
+// t is seconds since recording started.
+export interface ScanPoint {
+  x: number;
+  y: number;
+  h: number;
+  t: number;
+}
+
+// Where a scan sits on the plan: its start point, how far it's turned
+// (clockwise, degrees), a stretch factor for step-length error, and the
+// floor it started on.
+export interface ScanPlacement {
+  floor: number;
+  origin: Point;
+  rotationDeg: number;
+  scale: number;
+}
+
+export interface RouteScan {
+  id: string;
+  name: string;
+  createdAt: string;
+  // 'ar' = device pose from WebXR (ARCore); 'motion' = camera + step
+  // counting and gyroscope heading.
+  source: 'ar' | 'motion';
+  durationSeconds: number;
+  storyHeight: number;
+  points: ScanPoint[];
+  placement?: ScanPlacement;
 }
 
 export interface RouteStep {

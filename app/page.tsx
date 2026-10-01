@@ -3,7 +3,7 @@ import { NavBar } from '@/components/NavBar';
 import { SiteFooter } from '@/components/SiteFooter';
 import { Icon, type IconName } from '@/components/icons';
 import { LiveDemo } from '@/components/live/LiveDemo';
-import { DrillArt, FieldArt, LifelineArt, StackArt } from '@/components/live/ModeArt';
+import { DrillArt, FieldArt, LifelineArt, ScanArt, StackArt } from '@/components/live/ModeArt';
 
 const MODES = [
   {
@@ -131,6 +131,38 @@ export default function LandingPage() {
             </div>
             <div className="card drill-art">
               <DrillArt />
+            </div>
+          </div>
+        </section>
+
+        <section className="section">
+          <div className="container split">
+            <div className="card drill-art">
+              <ScanArt />
+            </div>
+            <div>
+              <span className="section-kicker">AR Scan</span>
+              <h2>Film the route. Get it in 3D.</h2>
+              <p>
+                Walk an escape route holding your phone like you&apos;re filming it. AR Scan tracks every step, turn and flight of
+                stairs, rebuilds the walk in 3D, and pins it onto your plan right next to the computed way out.
+              </p>
+              <ul className="ticks">
+                <li>
+                  <Icon name="check" size={18} /> Works on any phone: the camera films while motion sensors count steps and turns
+                </li>
+                <li>
+                  <Icon name="check" size={18} /> Precise AR mode on ARCore phones paints a live trail on the floor and captures stairs automatically
+                </li>
+                <li>
+                  <Icon name="check" size={18} /> Replay the walk with its video, then see it threaded through the Floor Stack
+                </li>
+              </ul>
+              <div className="hero-actions" style={{ marginTop: '1.5rem' }}>
+                <Link href="/demo?scan=1" className="btn btn-primary">
+                  <Icon name="camera" size={16} /> Try AR Scan
+                </Link>
+              </div>
             </div>
           </div>
         </section>

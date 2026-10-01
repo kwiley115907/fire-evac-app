@@ -24,6 +24,20 @@ buildings.
 - **Drill mode** — set rooms on fire, block doors or stairs; every route
   re-plans instantly. Burning rooms are never routed through (you can
   always leave one), rooms next to a fire are treated as smoke-logged.
+- **AR Scan** — walk a route with your phone and get it back in 3D
+  (`lib/ar-scan.ts`, `components/scan/`). Two capture modes:
+  - *Camera + motion* (any phone): films the walk with the camera while
+    the accelerometer counts steps and the gyroscope tracks turns; tap
+    Stairs down/up on a flight. Stride is adjustable afterwards.
+  - *Precise AR* (Android with ARCore, via WebXR): records the phone's real
+    6-DoF position, so height and stairs are captured automatically, and
+    paints a live trail on the floor in the camera view.
+  Scans are replayed in an orbitable 3D view (with the recorded video when
+  there is one), placed onto the plan (tap the start point, rotate, square
+  up, stretch), shown on each floor and threaded through the Floor Stack,
+  and saved with the building. Video stays on the device; only the path
+  is saved. `/demo?scan=1` opens it straight away, with a sample walk for
+  trying it without a phone.
 - **Egress audit** — rooms with no way out, longest travel vs. a limit you
   set, single-exit dependence, and load per exit.
 - **Escape-field engine** (`lib/evacuation-field.ts`) — reverse Dijkstra
