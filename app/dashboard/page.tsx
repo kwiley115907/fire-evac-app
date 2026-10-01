@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase-client';
 import { NavBar } from '@/components/NavBar';
 import { SiteFooter } from '@/components/SiteFooter';
 import { Icon } from '@/components/icons';
+import { BrandSplash } from '@/components/Brand';
 
 interface BuildingSummary {
   id: string;
@@ -103,11 +104,7 @@ export default function DashboardPage() {
     return (
       <div className="shell">
         <NavBar />
-        <main className="container">
-          <p style={{ padding: '3rem 0', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <span className="spinner" /> Loading your buildings…
-          </p>
-        </main>
+        <BrandSplash label="Loading your buildings…" />
       </div>
     );
   }
@@ -116,8 +113,9 @@ export default function DashboardPage() {
     <div className="shell">
       <NavBar />
       <main className="container">
-        <div className="page-header">
+        <div className="page-header brand-strip">
           <div>
+            <span className="section-kicker">Sentinel Grid</span>
             <h1>Your buildings</h1>
             <p>Open one to plan routes, run a drill, or audit its exits.</p>
           </div>

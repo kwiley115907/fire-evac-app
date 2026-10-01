@@ -136,24 +136,6 @@ export function DrillArt() {
   );
 }
 
-export function BrandMark({ size = 30 }: { size?: number }) {
-  return (
-    <svg className="brand-mark" width={size} height={size} viewBox="0 0 32 32" aria-hidden="true">
-      <defs>
-        <linearGradient id="bm-g" x1="0" y1="1" x2="1" y2="0">
-          <stop offset="0" stopColor="#ff5a36" />
-          <stop offset="1" stopColor="#2fe39a" />
-        </linearGradient>
-      </defs>
-      <rect x="1" y="1" width="30" height="30" rx="9" fill="#0f151e" stroke="rgba(160,200,240,0.25)" />
-      <path d="M8 7h16v6M24 19v6H8V7" fill="none" stroke="rgba(160,200,240,0.45)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M11.5 21.5c0-4 3-5.5 6-5.5h10" fill="none" stroke="url(#bm-g)" strokeWidth="2.6" strokeLinecap="round" />
-      <path d="M24.5 13l3 3-3 3" fill="none" stroke="#2fe39a" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="11.5" cy="21.5" r="2.2" fill="#ff5a36" />
-    </svg>
-  );
-}
-
 export function ScanArt() {
   // A phone filming a corridor with the trail painted on the floor, and
   // the same walk rebuilt in 3D beside it.

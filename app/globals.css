@@ -166,7 +166,7 @@ kbd {
 .navbar-inner { display: flex; align-items: center; justify-content: space-between; height: 62px; gap: 1rem; }
 .brand { display: flex; align-items: center; gap: 0.6rem; font-weight: 750; font-size: 1.02rem; color: var(--text); letter-spacing: -0.01em; }
 .brand:hover { color: var(--text); }
-.brand-mark { width: 30px; height: 30px; flex-shrink: 0; }
+.brand-mark { width: 30px; height: 30px; flex-shrink: 0; filter: drop-shadow(0 0 7px rgba(255, 60, 36, 0.4)); }
 .nav-links { display: flex; align-items: center; gap: 0.5rem; }
 .nav-links a:not(.btn) { color: var(--text-2); font-size: 0.92rem; padding: 0.4rem 0.7rem; border-radius: 9px; }
 .nav-links a:not(.btn):hover { color: var(--text); background: var(--surface-2); }
@@ -591,6 +591,8 @@ kbd {
 .scanner-close { position: absolute; top: calc(1rem + env(safe-area-inset-top)); right: 1rem; }
 .scanner-hero { display: flex; justify-content: center; margin: 1rem 0 1.25rem; }
 .scanner-hero svg { width: 220px; height: 120px; }
+.scanner-hero.brand-hero-card { position: relative; aspect-ratio: 16 / 9; margin: 2.75rem 0 1.5rem; border-radius: 18px; overflow: hidden; border: 1px solid rgba(255, 90, 54, 0.3); box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55), 0 0 50px rgba(255, 60, 36, 0.12); }
+.brand-hero-card img { object-fit: cover; }
 .scanner-intro h2 { font-size: clamp(1.7rem, 6vw, 2.2rem); letter-spacing: -0.035em; }
 .scan-modes { display: grid; gap: 0.75rem; margin: 1.5rem 0 1rem; }
 .scan-mode { width: 100%; justify-content: flex-start; text-align: left; white-space: normal; gap: 0.9rem; padding: 1rem; border-radius: 18px; background: var(--surface); border-color: var(--line-2); font-weight: 400; }
@@ -710,4 +712,109 @@ kbd {
 }
 @media (max-width: 860px) {
   .toast.raised { bottom: 72px; }
+}
+
+/* =====================================================================
+   Brand: the Sentinel Grid key art, SG badge and Orbitron wordmark.
+   --brand-art is a 1600px copy of the banner for CSS backgrounds; the
+   landing hero uses the full-size art through next/image.
+   ===================================================================== */
+:root { --brand-art: url(/brand/sentinel-grid-bg.webp); }
+
+.brand-word { font-family: var(--font-brand), var(--font-sans); font-weight: 900; font-size: 0.95rem; letter-spacing: 0.05em; text-transform: uppercase; line-height: 1; white-space: nowrap; }
+.brand-word-a, .brand-word-b { -webkit-background-clip: text; background-clip: text; color: transparent; }
+.brand-word-a { background-image: linear-gradient(180deg, #ff8a6a 0%, #ff3b24 55%, #c8170f 100%); }
+.brand-word-b { background-image: linear-gradient(180deg, #ffffff 0%, #b9c3cd 55%, #eef2f5 100%); }
+
+/* landing hero */
+.brand-banner { position: relative; overflow: hidden; isolation: isolate; background: #050608; }
+.brand-banner::before { content: ''; position: absolute; inset: -60px; z-index: -1; background: var(--brand-art) center / cover no-repeat; filter: blur(42px) saturate(1.2) brightness(0.62); }
+.brand-banner::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 38%; z-index: -1; background: linear-gradient(transparent, var(--bg)); }
+.brand-banner-frame {
+  position: relative; margin: 0 auto; max-width: 100%; aspect-ratio: 16 / 9;
+  height: min(56.25vw, calc(100vh - 62px));
+  height: min(56.25vw, calc(100svh - 62px));
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 3%, #000 97%, transparent), linear-gradient(#000 93%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(90deg, transparent, #000 3%, #000 97%, transparent), linear-gradient(#000 93%, transparent);
+  mask-composite: intersect;
+}
+.brand-banner-img { object-fit: cover; }
+.brand-banner + .hero { padding-top: 1.5rem; }
+
+/* closing call to action sits on the art, darkest behind the words */
+.cta-band.brand-bg { position: relative; overflow: hidden; isolation: isolate; padding: 4rem 2rem; background: var(--bg-2); border-color: rgba(255, 90, 54, 0.3); box-shadow: 0 30px 90px rgba(0, 0, 0, 0.5), 0 0 60px rgba(255, 60, 36, 0.08); }
+.cta-band.brand-bg::before {
+  content: ''; position: absolute; inset: 0; z-index: -1;
+  background:
+    radial-gradient(ellipse 52% 72% at 50% 50%, rgba(7, 10, 15, 0.9), rgba(7, 10, 15, 0.42) 100%),
+    var(--brand-art) 50% 42% / 130% auto no-repeat;
+}
+.cta-band.brand-bg p { color: var(--text); }
+.cta-band.brand-bg .btn-ghost { background: rgba(7, 10, 15, 0.62); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+
+/* full-height page area with the art dimmed behind it (auth, splash, 404) */
+.brand-backdrop { position: relative; isolation: isolate; overflow: hidden; flex: 1; display: flex; flex-direction: column; justify-content: center; }
+.brand-backdrop::before {
+  content: ''; position: absolute; inset: 0; z-index: -1;
+  background:
+    linear-gradient(180deg, rgba(7, 10, 15, 0.42) 0%, rgba(7, 10, 15, 0.7) 60%, var(--bg) 100%),
+    var(--brand-art) 50% 34% / cover no-repeat;
+}
+.brand-backdrop .auth-wrap { flex: 1; min-height: 0; }
+.brand-backdrop .auth-card,
+.brand-lost-card { background: rgba(9, 13, 19, 0.8); border-color: rgba(255, 255, 255, 0.12); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6); backdrop-filter: blur(16px) saturate(1.2); -webkit-backdrop-filter: blur(16px) saturate(1.2); }
+
+.brand-splash { align-items: center; }
+.brand-splash::before { inset: -24px; filter: blur(10px) brightness(0.7); }
+.brand-splash-inner { display: flex; flex-direction: column; align-items: center; gap: 1.2rem; padding: 2rem; }
+.brand-splash-logo { width: 96px; height: 96px; filter: drop-shadow(0 0 22px rgba(255, 60, 36, 0.45)); animation: brand-breathe 2.4s ease-in-out infinite; }
+@keyframes brand-breathe { 50% { transform: scale(1.05); filter: drop-shadow(0 0 36px rgba(255, 60, 36, 0.7)); } }
+.brand-splash-label { display: inline-flex; align-items: center; gap: 0.6rem; font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-2); background: rgba(7, 10, 15, 0.72); border: 1px solid var(--line-2); padding: 0.5rem 0.95rem; border-radius: 99px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+
+.brand-lost { align-items: center; padding: 2.5rem 1rem; }
+.brand-lost-card { width: 100%; max-width: 440px; padding: 2.25rem 2rem; text-align: center; display: flex; flex-direction: column; align-items: center; }
+.brand-lost-logo { width: 72px; height: 72px; margin-bottom: 1.1rem; filter: drop-shadow(0 0 18px rgba(255, 60, 36, 0.5)); }
+.brand-lost-card h1 { font-family: var(--font-brand), var(--font-sans); font-weight: 900; font-size: 2.1rem; letter-spacing: 0.03em; text-transform: uppercase; }
+.brand-lost-card .hero-actions { justify-content: center; margin-top: 0.5rem; }
+
+/* dashboard header: the badge end of the art on the right */
+.page-header.brand-strip { position: relative; isolation: isolate; overflow: hidden; align-items: center; margin: 1.5rem 0; padding: 2.25rem 1.75rem; border-radius: 22px; border: 1px solid var(--line-2); background: radial-gradient(520px 220px at 0% 0%, rgba(255, 60, 36, 0.1), transparent 70%), var(--bg-2); box-shadow: var(--shadow); }
+.page-header.brand-strip::before {
+  content: ''; position: absolute; inset: 0; z-index: -1;
+  background: var(--brand-art) 100% 4% / auto 270% no-repeat;
+  -webkit-mask-image: linear-gradient(90deg, transparent 36%, rgba(0, 0, 0, 0.6) 64%, #000 100%);
+  mask-image: linear-gradient(90deg, transparent 36%, rgba(0, 0, 0, 0.6) 64%, #000 100%);
+}
+.page-header.brand-strip .section-kicker { margin-bottom: 0.45rem; color: #ff7a5c; }
+
+@media (max-width: 960px) {
+  .cta-band.brand-bg::before { background-size: auto, cover; }
+}
+
+@media (max-width: 640px) {
+  .brand-banner-frame {
+    width: 100%; height: auto; aspect-ratio: 4 / 3;
+    -webkit-mask-image: linear-gradient(#000 92%, transparent);
+    mask-image: linear-gradient(#000 92%, transparent);
+  }
+  .brand-banner + .hero { padding-top: 1rem; }
+  .cta-band.brand-bg { padding: 3rem 1.25rem; }
+  .page-header.brand-strip { padding: 1.5rem 1.25rem; }
+  .page-header.brand-strip::before {
+    background-position: 50% 6%; background-size: cover;
+    -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.42), rgba(0, 0, 0, 0.08) 80%);
+    mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.42), rgba(0, 0, 0, 0.08) 80%);
+  }
+  .cta-band.brand-bg::before {
+    background:
+      linear-gradient(180deg, rgba(7, 10, 15, 0.62), rgba(7, 10, 15, 0.86)),
+      var(--brand-art) 50% 0 / auto 165% no-repeat;
+  }
+}
+
+@media (max-width: 520px) {
+  .brand-word { font-size: 0.78rem; letter-spacing: 0.02em; }
+  .brand { gap: 0.45rem; }
+  .brand-mark { width: 26px; height: 26px; }
 }

@@ -6,6 +6,7 @@ import type { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase-client';
 import { NavBar } from '@/components/NavBar';
 import { BuildingEditor } from '@/components/editor/BuildingEditor';
+import { BrandSplash } from '@/components/Brand';
 import type { BuildingGraph } from '@/lib/evacuation-types';
 
 export default function BuildingPage() {
@@ -51,9 +52,7 @@ export default function BuildingPage() {
     return (
       <div className="shell">
         <NavBar />
-        <main className="container">
-          <p style={{ padding: '3rem 0' }}>Loading…</p>
-        </main>
+        <BrandSplash label="Loading building…" />
       </div>
     );
   }

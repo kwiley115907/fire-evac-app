@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
+import banner from '@/assets/brand/sentinel-grid-banner.webp';
 import type { ScanPoint } from '@/lib/evacuation-types';
 import {
   angleDiff,
@@ -290,14 +292,8 @@ export function ArScanner({ onClose, onComplete }: { onClose: () => void; onComp
           <button type="button" className="icon-btn scanner-close" onClick={onClose} aria-label="Close">
             <Icon name="close" />
           </button>
-          <div className="scanner-hero" aria-hidden="true">
-            <svg viewBox="0 0 220 120">
-              <rect x="70" y="6" width="80" height="108" rx="14" fill="#0f151e" stroke="rgba(160,200,240,0.35)" strokeWidth="2" />
-              <rect x="78" y="16" width="64" height="88" rx="6" fill="#0b1017" />
-              <path d="M86 92 C 100 80, 96 60, 110 54 S 132 34, 134 24" fill="none" stroke="#2fe39a" strokeWidth="4" strokeLinecap="round" strokeDasharray="0.1 9" className="art-march" />
-              <circle cx="86" cy="92" r="5" fill="#ff5a36" />
-              <path d="M20 100 L60 80 M160 80 L200 100" stroke="rgba(160,200,240,0.18)" strokeWidth="2" />
-            </svg>
+          <div className="scanner-hero brand-hero-card" aria-hidden="true">
+            <Image src={banner} alt="" fill sizes="(max-width: 560px) 92vw, 480px" placeholder="blur" />
           </div>
           <span className="section-kicker">AR Scan</span>
           <h2>Walk the route. Get it in 3D.</h2>

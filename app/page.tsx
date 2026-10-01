@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { NavBar } from '@/components/NavBar';
+import { BrandBanner } from '@/components/Brand';
 import { SiteFooter } from '@/components/SiteFooter';
 import { Icon, type IconName } from '@/components/icons';
 import { LiveDemo } from '@/components/live/LiveDemo';
@@ -43,6 +44,7 @@ export default function LandingPage() {
     <div className="shell">
       <NavBar />
       <main>
+        <BrandBanner />
         <section className="hero">
           <div className="container hero-grid">
             <div>
@@ -188,7 +190,7 @@ export default function LandingPage() {
         </section>
 
         <section className="container">
-          <div className="cta-band">
+          <div className="cta-band brand-bg">
             <h2>Your building’s way out, mapped tonight.</h2>
             <p>Free to start. No credit card. Your plans stay private to your account.</p>
             <div className="hero-actions">
