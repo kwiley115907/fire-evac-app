@@ -611,25 +611,34 @@ kbd {
 .scan-sample { margin-top: 0.5rem; }
 
 .scanner-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+/* Blurs over a live camera feed get re-rendered every video frame, so the
+   HUD uses solid tints. The editor behind the full-screen scanner is hidden
+   so its route animations stop competing for the phone's main thread. */
+/* Taps on the camera view must not double-tap-zoom the page: that pushes the
+   REC bar and stop button off-screen mid-walk. */
+.scanner { touch-action: manipulation; }
+.scanner.phase-motion, .scanner.phase-ar { touch-action: none; }
+.deck.scanning > :not(.scanner) { visibility: hidden; }
+.deck.scanning > :not(.scanner) * { animation-play-state: paused !important; }
 .scanner-hud { position: absolute; inset: 0; display: none; flex-direction: column; justify-content: space-between; pointer-events: none; padding: calc(0.9rem + env(safe-area-inset-top)) 0.9rem calc(0.9rem + env(safe-area-inset-bottom)); background: linear-gradient(rgba(0, 0, 0, 0.55), transparent 22%, transparent 62%, rgba(0, 0, 0, 0.7)); }
 .scanner-hud.on { display: flex; }
 .scanner-hud > * { pointer-events: auto; }
 .hud-top { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; }
-.rec { display: inline-flex; align-items: center; gap: 0.45rem; font-weight: 800; font-size: 0.82rem; letter-spacing: 0.08em; padding: 0.4rem 0.75rem; border-radius: 99px; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(8px); }
+.rec { display: inline-flex; align-items: center; gap: 0.45rem; font-weight: 800; font-size: 0.82rem; letter-spacing: 0.08em; padding: 0.4rem 0.75rem; border-radius: 99px; background: rgba(0, 0, 0, 0.62); }
 .rec .mono { font-weight: 600; letter-spacing: 0; }
 .rec-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--fire); box-shadow: 0 0 10px var(--fire); animation: rec 1s ease-in-out infinite; }
 @keyframes rec { 50% { opacity: 0.25; } }
 .hud-stats { display: flex; gap: 0.5rem; }
-.hud-stats span { font-size: 0.82rem; padding: 0.4rem 0.65rem; border-radius: 99px; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(8px); }
+.hud-stats span { font-size: 0.82rem; padding: 0.4rem 0.65rem; border-radius: 99px; background: rgba(0, 0, 0, 0.62); }
 .hud-center { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none !important; }
 .reticle { width: 64px; height: 64px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.55); box-shadow: 0 0 0 6px rgba(0, 0, 0, 0.15); position: relative; }
 .reticle::after { content: ''; position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; margin: -4px; border-radius: 50%; background: var(--go); box-shadow: 0 0 12px var(--go); }
 .hud-notes { position: absolute; left: 0; right: 0; top: 30%; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; pointer-events: none !important; }
-.hud-note { font-size: 0.84rem; padding: 0.45rem 0.85rem; border-radius: 12px; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); text-align: center; max-width: 86%; }
+.hud-note { font-size: 0.84rem; padding: 0.45rem 0.85rem; border-radius: 12px; background: rgba(0, 0, 0, 0.7); text-align: center; max-width: 86%; }
 .hud-note.warn { background: rgba(120, 40, 20, 0.75); color: #ffd0c4; }
 .hud-bottom { display: grid; grid-template-columns: auto 1fr auto; align-items: end; gap: 0.75rem; }
 .live-map { width: 104px; height: 104px; }
-.stair-switch { display: flex; gap: 4px; padding: 4px; border-radius: 16px; background: rgba(0, 0, 0, 0.55); backdrop-filter: blur(10px); justify-self: center; }
+.stair-switch { display: flex; gap: 4px; padding: 4px; border-radius: 16px; background: rgba(0, 0, 0, 0.66); justify-self: center; }
 .stair-switch button { flex-direction: column; gap: 3px; padding: 0.45rem 0.6rem; font-size: 0.68rem; border-radius: 12px; border: none; background: transparent; color: rgba(255, 255, 255, 0.75); }
 .stair-switch button.active { background: rgba(76, 201, 255, 0.25); color: #fff; box-shadow: 0 0 0 1px rgba(76, 201, 255, 0.6) inset; }
 .stop-btn { width: 66px; height: 66px; padding: 0; border-radius: 50%; background: var(--fire); border: 4px solid rgba(255, 255, 255, 0.85); color: #fff; box-shadow: 0 0 30px rgba(255, 90, 54, 0.45); }

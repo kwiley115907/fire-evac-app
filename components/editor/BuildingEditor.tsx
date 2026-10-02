@@ -630,7 +630,7 @@ export function BuildingEditor({
   ];
 
   return (
-    <div className="deck">
+    <div className={`deck${scannerOpen ? ' scanning' : ''}`}>
       <header className="deck-top">
         <div className="deck-top-left">
           <Link href={demo ? '/' : '/dashboard'} className="icon-btn" aria-label={demo ? 'Home' : 'Back to dashboard'}>

@@ -47,6 +47,31 @@ async function requestSensorPermission(): Promise<boolean> {
   }
 }
 
+// Chrome/Samsung Internet's Generic Sensor API. Some Android builds deliver
+// readings here even when the older devicemotion event stays silent.
+interface GenericAccelerometer extends EventTarget {
+  x: number | null;
+  y: number | null;
+  z: number | null;
+  start(): void;
+  stop(): void;
+}
+type AccelerometerCtor = new (opts: { frequency: number }) => GenericAccelerometer;
+
+type SensorTrouble = 'blocked' | 'silent';
+
+// After motion data fails to arrive, tell blocked-by-permission apart from
+// a browser or device that just isn't sending any.
+async function diagnoseSensors(): Promise<SensorTrouble> {
+  try {
+    const status = await navigator.permissions?.query({ name: 'accelerometer' as PermissionName });
+    if (status?.state === 'denied') return 'blocked';
+  } catch {
+    // Browsers that don't know the 'accelerometer' permission name throw.
+  }
+  return 'silent';
+}
+
 function pickMime(): string | null {
   if (typeof MediaRecorder === 'undefined') return null;
   for (const m of ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm']) {
@@ -87,6 +112,7 @@ export function ArScanner({ onClose, onComplete }: { onClose: () => void; onComp
   const [heading, setHeading] = useState(0);
   const [tilted, setTilted] = useState(false);
   const [noSensors, setNoSensors] = useState(false);
+  const [sensorTrouble, setSensorTrouble] = useState<SensorTrouble | null>(null);
   const [noCamera, setNoCamera] = useState(false);
   const [tracking, setTracking] = useState(true);
 
@@ -103,6 +129,7 @@ export function ArScanner({ onClose, onComplete }: { onClose: () => void; onComp
   const detector = useRef(new StepDetector());
   const t0 = useRef(0);
   const sawMotion = useRef(false);
+  const tiltedRef = useRef(false);
   const xr = useRef<XrCapture | null>(null);
   const detach = useRef<(() => void) | null>(null);
 
@@ -120,9 +147,19 @@ export function ArScanner({ onClose, onComplete }: { onClose: () => void; onComp
     const id = window.setInterval(() => {
       setElapsed((performance.now() - t0.current) / 1000);
       if (phase === 'motion' && !sawMotion.current && performance.now() - t0.current > 2500) setNoSensors(true);
+      if (phase === 'motion' && sawMotion.current) setNoSensors(false);
     }, 250);
     return () => window.clearInterval(id);
   }, [phase]);
+
+  useEffect(() => {
+    if (!noSensors) return;
+    let live = true;
+    diagnoseSensors().then((t) => live && setSensorTrouble(t));
+    return () => {
+      live = false;
+    };
+  }, [noSensors]);
 
   // Never leave the camera or sensors running behind us.
   useEffect(
@@ -161,6 +198,8 @@ export function ArScanner({ onClose, onComplete }: { onClose: () => void; onComp
     filter.current = new HeadingFilter(0.3);
     detector.current = new StepDetector();
     sawMotion.current = false;
+    setNoSensors(false);
+    setSensorTrouble(null);
     chunks.current = [];
     t0.current = performance.now();
     setPoints([{ x: 0, y: 0, h: 0, t: 0 }]);
@@ -169,32 +208,66 @@ export function ArScanner({ onClose, onComplete }: { onClose: () => void; onComp
     setStairMode('level');
     setPhase('motion');
 
+    // Orientation fires 60+ times a second. Keep the filter fed on every
+    // event but re-render at most once per frame: rendering per event kept
+    // the main thread busy enough to delay taps by over half a second.
+    let frame = 0;
+    const flush = () => {
+      frame = 0;
+      setHeading(headingRef.current);
+      setTilted(tiltedRef.current);
+    };
     const onOrientation = (e: DeviceOrientationEvent) => {
       if (e.alpha === null || e.beta === null || e.gamma === null) return;
       const raw = cameraHeading(e.alpha, e.beta, e.gamma);
       if (zero.current === null) zero.current = raw;
       headingRef.current = filter.current.push(angleDiff(raw, zero.current));
-      setHeading(headingRef.current);
       // Camera pointing mostly at the floor or ceiling?
       const camUp = -Math.cos((e.beta * Math.PI) / 180) * Math.cos((e.gamma * Math.PI) / 180);
-      setTilted(Math.abs(camUp) > 0.75);
+      tiltedRef.current = Math.abs(camUp) > 0.75;
+      if (!frame) frame = requestAnimationFrame(flush);
     };
-    const onMotion = (e: DeviceMotionEvent) => {
-      const a = e.accelerationIncludingGravity;
-      if (!a || a.x === null || a.y === null || a.z === null) return;
+    const feedAcceleration = (x: number, y: number, z: number) => {
       sawMotion.current = true;
       const t = (performance.now() - t0.current) / 1000;
-      if (detector.current.feed(Math.hypot(a.x, a.y, a.z), t)) {
+      if (detector.current.feed(Math.hypot(x, y, z), t)) {
         steps.current.push({ t, heading: headingRef.current, mode: stairsRef.current });
         setStepCount(steps.current.length);
         setPoints(buildMotionPath(steps.current, DEFAULT_STEP_LENGTH));
       }
     };
+    const onMotion = (e: DeviceMotionEvent) => {
+      const a = e.accelerationIncludingGravity;
+      if (!a || a.x === null || a.y === null || a.z === null) return;
+      feedAcceleration(a.x, a.y, a.z);
+    };
     window.addEventListener('deviceorientation', onOrientation);
     window.addEventListener('devicemotion', onMotion);
+
+    // No devicemotion after a second? Try the Generic Sensor API instead.
+    let accel: GenericAccelerometer | null = null;
+    const fallback = window.setTimeout(() => {
+      const Ctor = (window as unknown as { Accelerometer?: AccelerometerCtor }).Accelerometer;
+      if (sawMotion.current || !Ctor) return;
+      try {
+        const sensor = new Ctor({ frequency: 60 });
+        sensor.addEventListener('reading', () => {
+          if (sensor.x !== null && sensor.y !== null && sensor.z !== null) feedAcceleration(sensor.x, sensor.y, sensor.z);
+        });
+        sensor.addEventListener('error', () => sensor.stop());
+        sensor.start();
+        accel = sensor;
+      } catch {
+        accel = null;
+      }
+    }, 1000);
+
     detach.current = () => {
       window.removeEventListener('deviceorientation', onOrientation);
       window.removeEventListener('devicemotion', onMotion);
+      window.clearTimeout(fallback);
+      accel?.stop();
+      if (frame) cancelAnimationFrame(frame);
     };
 
     const mime = pickMime();
@@ -367,7 +440,13 @@ export function ArScanner({ onClose, onComplete }: { onClose: () => void; onComp
 
             <div className="hud-notes">
               {phase === 'motion' && noCamera && <span className="hud-note">Camera unavailable — still tracking your steps</span>}
-              {phase === 'motion' && noSensors && <span className="hud-note warn">No motion sensors detected on this device</span>}
+              {phase === 'motion' && noSensors && (
+                <span className="hud-note warn">
+                  {sensorTrouble === 'blocked'
+                    ? 'Motion sensors are blocked for this site. Tap the icon next to the address, open Permissions, allow Motion sensors, then start again.'
+                    : 'No motion data yet. Allow Motion sensors for this site in your browser’s site settings, then start again.'}
+                </span>
+              )}
               {phase === 'motion' && tilted && <span className="hud-note warn">Hold the phone upright, camera facing forward</span>}
               {phase === 'ar' && !tracking && <span className="hud-note warn">Tracking lost — slow down and point at the floor</span>}
               {phase === 'ar' && tracking && points.length < 3 && <span className="hud-note">Move slowly for a moment so AR can find the floor</span>}
