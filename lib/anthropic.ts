@@ -42,7 +42,11 @@ export async function callClaude(params: {
 
   const data = await res.json();
   const block = data.content?.find((c: { type: string }) => c.type === 'text');
-  if (!block?.text) throw new Error('No text response from Claude');
+  if (!block?.text) {
+    throw new Error(
+      data.stop_reason === 'max_tokens' ? 'Claude ran out of output tokens before answering' : 'No text response from Claude'
+    );
+  }
   return block.text as string;
 }
 

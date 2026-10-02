@@ -45,7 +45,9 @@ export async function POST(req: NextRequest) {
   try {
     const text = await callClaude({
       system: SYSTEM_PROMPT,
-      maxTokens: 4096,
+      // Sonnet thinks before answering and that counts against this cap;
+      // a big multi-room floor needs room for both.
+      maxTokens: 16000,
       messages: [
         {
           role: 'user',
