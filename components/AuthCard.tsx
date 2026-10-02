@@ -11,6 +11,7 @@ export function AuthCard({ mode }: { mode: 'sign-in' | 'sign-up' }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [alreadyRegistered, setAlreadyRegistered] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -18,14 +19,20 @@ export function AuthCard({ mode }: { mode: 'sign-in' | 'sign-up' }) {
     setLoading(true);
     setError(null);
     setInfo(null);
+    setAlreadyRegistered(false);
 
     if (mode === 'sign-in') {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) setError(error.message);
       else router.push('/dashboard');
     } else {
-      const { error } = await supabase.auth.signUp({ email, password });
+      const { data, error } = await supabase.auth.signUp({ email, password });
       if (error) setError(error.message);
+      // Supabase answers a sign-up for an existing email with a user that has
+      // no identities and sends no email. Saying so means this form reveals
+      // which emails are registered; that's the trade for not leaving people
+      // waiting on an email that will never come.
+      else if (data.user && data.user.identities?.length === 0) setAlreadyRegistered(true);
       else setInfo('Check your email to confirm your account, then sign in.');
     }
 
@@ -66,7 +73,17 @@ export function AuthCard({ mode }: { mode: 'sign-in' | 'sign-up' }) {
           {mode === 'sign-in' ? 'Sign in' : 'Sign up'}
         </button>
         {error && <p className="error-text">{error}</p>}
+        {alreadyRegistered && (
+          <p className="error-text">
+            That email already has an account. <Link href="/login">Sign in instead</Link>.
+          </p>
+        )}
         {info && <p className="info-text">{info}</p>}
+        {mode === 'sign-in' && (
+          <p className="auth-switch">
+            <Link href="/forgot-password">Forgot password?</Link>
+          </p>
+        )}
         <p className="auth-switch">
           {mode === 'sign-in' ? (
             <>
