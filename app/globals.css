@@ -881,3 +881,5 @@ kbd {
   .modal-actions { flex-wrap: wrap; }
   .modal-actions > * { flex: 1 1 auto; }
 }
+
+.scan-note { margin: 0 0 0.9rem; padding: 0.7rem 0.9rem; border-radius: 12px; font-size: 0.86rem; color: #d7c6ff; background: rgba(177, 140, 255, 0.1); border: 1px solid rgba(177, 140, 255, 0.3); }

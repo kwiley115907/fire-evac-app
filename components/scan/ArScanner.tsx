@@ -298,6 +298,19 @@ export function ArScanner({ onClose, onComplete }: { onClose: () => void; onComp
     detach.current = null;
     const duration = (performance.now() - t0.current) / 1000;
     const recorded = steps.current.slice();
+    if (recorded.length === 0) {
+      recorder.current?.stop();
+      recorder.current = null;
+      stream.current?.getTracks().forEach((t) => t.stop());
+      stream.current = null;
+      setPhase('intro');
+      setError(
+        sawMotion.current
+          ? 'No steps were counted, so there’s no route to build. Walk at a normal pace with the phone held upright, then stop.'
+          : 'No steps were recorded because the motion sensors sent no data. Allow Motion sensors for this site (tap the icon next to the address → Permissions), then try again.'
+      );
+      return;
+    }
     const done = (video?: ScanCapture['video']) => {
       stream.current?.getTracks().forEach((t) => t.stop());
       stream.current = null;

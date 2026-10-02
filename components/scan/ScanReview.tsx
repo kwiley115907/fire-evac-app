@@ -15,6 +15,7 @@ export function ScanReview({
   video,
   isNew,
   sample = false,
+  demo = false,
   canPlace,
   onPlace,
   onSave,
@@ -26,6 +27,7 @@ export function ScanReview({
   video?: { url: string; mime: string };
   isNew: boolean;
   sample?: boolean;
+  demo?: boolean;
   canPlace: boolean;
   onPlace: (scan: RouteScan) => void;
   onSave?: (scan: RouteScan) => void;
@@ -153,6 +155,19 @@ export function ScanReview({
           </p>
         </div>
 
+        {isNew && !canPlace && !demo && (
+          <p className="scan-note">
+            This building has no rooms yet, so the walk can’t be pinned onto a plan. Keep it now; once you’ve drawn or uploaded the
+            floor plan, open it from Scans and tap Place on plan to see it in 3D in the building.
+          </p>
+        )}
+        {demo && isNew && !sample && (
+          <p className="scan-note">
+            This is the live demo, so this walk won’t be saved. To keep scans, open one of your buildings from the Dashboard and use
+            AR Scan there.
+          </p>
+        )}
+
         <footer className="scan-actions">
           {canPlace && (
             <button type="button" className="btn-primary" onClick={() => onPlace(result())}>
@@ -161,7 +176,7 @@ export function ScanReview({
           )}
           {onSave && (
             <button type="button" className="btn-ghost" onClick={() => onSave(result())}>
-              <Icon name="check" size={16} /> {isNew ? 'Keep without placing' : 'Save changes'}
+              <Icon name="check" size={16} /> {isNew ? (canPlace ? 'Keep without placing' : 'Keep scan') : 'Save changes'}
             </button>
           )}
           {video && (

@@ -307,13 +307,18 @@ export function BuildingEditor({
   // ---------- AR Scan ----------
   const scans = useMemo(() => graph.scans ?? [], [graph.scans]);
 
-  function upsertScan(scan: RouteScan) {
+  // Scans save to the building straight away: a walk is too much effort to
+  // lose to a forgotten Save tap or a closed tab.
+  function upsertScan(scan: RouteScan, message = 'Scan saved') {
     const exists = scans.some((x) => x.id === scan.id);
     if (!exists && scans.length >= 30) {
       showToast('This building already has 30 scans — delete one first', 'fire');
       return false;
     }
-    updateGraph({ ...graph, scans: exists ? scans.map((x) => (x.id === scan.id ? scan : x)) : [...scans, scan] });
+    const next = { ...graph, scans: exists ? scans.map((x) => (x.id === scan.id ? scan : x)) : [...scans, scan] };
+    updateGraph(next);
+    if (demo) showToast('Demo scans aren’t saved — open your own building to keep them', 'info');
+    else void save(next, message);
     return true;
   }
 
@@ -355,7 +360,7 @@ export function BuildingEditor({
 
   function savePlacement() {
     if (!placing) return;
-    if (!upsertScan(placing)) return;
+    if (!upsertScan(placing, `${placing.name} placed and saved`)) return;
     setHiddenScans((h) => {
       const next = new Set(h);
       next.delete(placing.id);
@@ -364,11 +369,12 @@ export function BuildingEditor({
     setPlacing(null);
     setSheetOpen(false);
     setView('3d');
-    showToast(`${placing.name} placed — here it is in 3D`, 'go');
   }
 
   function deleteScan(id: string) {
-    updateGraph({ ...graph, scans: scans.filter((x) => x.id !== id) });
+    const next = { ...graph, scans: scans.filter((x) => x.id !== id) };
+    updateGraph(next);
+    if (!demo) void save(next, 'Scan deleted');
     const v = videos[id];
     if (v) URL.revokeObjectURL(v.url);
   }
@@ -531,7 +537,7 @@ export function BuildingEditor({
       }
       if (mod && key === 's') {
         e.preventDefault();
-        if (!demo && dirty && !saving) save();
+        if (!demo && dirty && !saving) void save();
         return;
       }
       if (mod || e.altKey) return;
@@ -594,21 +600,23 @@ export function BuildingEditor({
     return () => window.clearTimeout(id);
   }, [playing, activeStep, shownGuide, view]);
 
-  async function save() {
+  // `next` lets a caller save a graph it just built, before React has
+  // re-rendered with it.
+  async function save(next: BuildingGraph = graph, message = 'Saved') {
     if (demo) return;
     setSaving(true);
     try {
       const res = await fetch(`/api/buildings/${buildingId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ graph }),
+        body: JSON.stringify({ graph: next }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error ?? 'Save failed');
       }
       setDirty(false);
-      showToast('Saved', 'go');
+      showToast(message, 'go');
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Save failed', 'fire');
     } finally {
@@ -682,7 +690,7 @@ export function BuildingEditor({
               Save yours<span className="hide-sm">&nbsp;— free</span>
             </Link>
           ) : (
-            <button type="button" className="btn-primary btn-sm" onClick={save} disabled={saving || !dirty}>
+            <button type="button" className="btn-primary btn-sm" onClick={() => void save()} disabled={saving || !dirty}>
               {saving ? <span className="spinner" /> : <Icon name="check" size={15} />}
               {dirty ? 'Save' : 'Saved'}
             </button>
@@ -917,6 +925,7 @@ export function BuildingEditor({
           video={videos[review.scan.id]}
           isNew={review.isNew}
           sample={review.sample}
+          demo={demo}
           canPlace={graph.rooms.length > 0}
           onPlace={startPlacing}
           onSave={(scan) => {
@@ -936,10 +945,7 @@ export function BuildingEditor({
           }}
           onClose={(scan) => {
             // Closing a fresh scan keeps it rather than throwing a walk away.
-            if (review.isNew && upsertScan(scan)) {
-              setTab('scans');
-              showToast('Scan kept under Scans', 'info');
-            }
+            if (review.isNew && upsertScan(scan)) setTab('scans');
             setReview(null);
           }}
         />
