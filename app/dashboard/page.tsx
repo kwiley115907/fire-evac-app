@@ -121,9 +121,14 @@ export default function DashboardPage() {
             <h1>Your buildings</h1>
             <p>Open one to plan routes, run a drill, or audit its exits.</p>
           </div>
-          <button type="button" className="btn-primary" onClick={() => setCreating(true)}>
-            <Icon name="plus" size={16} /> New building
-          </button>
+          <div className="page-header-actions">
+            <button type="button" className="btn-primary" onClick={() => setCreating(true)}>
+              <Icon name="image" size={16} /> Upload floor plan
+            </button>
+            <button type="button" className="btn-ghost" onClick={() => setCreating(true)}>
+              <Icon name="plus" size={16} /> New building
+            </button>
+          </div>
         </div>
 
         {error && <p className="error-text">{error}</p>}

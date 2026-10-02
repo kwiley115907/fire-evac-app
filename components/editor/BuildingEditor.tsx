@@ -87,7 +87,7 @@ export function BuildingEditor({
   const [cameraRequest, setCameraRequest] = useState<CameraRequest | null>(null);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
-  const [showAiDetect, setShowAiDetect] = useState(openDetect && !demo);
+  const [showAiDetect, setShowAiDetect] = useState(openDetect);
   const [namingRoom, setNamingRoom] = useState<string | null>(null);
   const [scannerOpen, setScannerOpen] = useState(openScanner);
   const [review, setReview] = useState<{ scan: RouteScan; steps?: ScanStep[]; isNew: boolean; sample?: boolean } | null>(null);
@@ -657,14 +657,12 @@ export function BuildingEditor({
           </div>
         </div>
         <div className="deck-top-right">
-          {!demo && (
-            <button type="button" className="btn-sm upload-plan-top" onClick={openUpload} title="Upload a floor-plan image">
-              <Icon name="image" size={16} />
-              <span>
-                Upload<span className="hide-sm"> floor plan</span>
-              </span>
-            </button>
-          )}
+          <button type="button" className="btn-sm upload-plan-top" onClick={openUpload} title="Upload a floor-plan image">
+            <Icon name="image" size={16} />
+            <span>
+              Upload<span className="hide-sm"> floor plan</span>
+            </span>
+          </button>
           <button type="button" className="btn-ghost btn-sm scan-top" onClick={() => setScannerOpen(true)} title="AR Scan">
             <Icon name="camera" size={16} />
             <span className="hide-sm">AR Scan</span>
@@ -703,7 +701,7 @@ export function BuildingEditor({
           tool={tool}
           view={view}
           onChange={changeTool}
-          onDetect={demo ? undefined : openUpload}
+          onDetect={openUpload}
           onScan={() => setScannerOpen(true)}
           draftCount={draftPolygon.length}
           onFinishRoom={finishRoom}
@@ -954,6 +952,7 @@ export function BuildingEditor({
       {showAiDetect && (
         <AiDetectModal
           floor={floor}
+          demo={demo}
           onClose={() => setShowAiDetect(false)}
           onMerge={({ rooms, walls, doors }) =>
             updateGraph({

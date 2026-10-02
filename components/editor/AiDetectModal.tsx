@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { nextId } from '@/lib/editor-utils';
 import type { DoorOpening, Room, WallSegment } from '@/lib/evacuation-types';
 
@@ -22,22 +23,30 @@ interface DetectedDoor {
   roomB: string;
 }
 
+// A real single-storey site plan (two wings of numbered units around a pool
+// and office), bundled so anyone can see detection work without a file.
+const SAMPLE_PLAN = '/samples/sample-floor-plan.png';
+
 export function AiDetectModal({
   floor,
+  demo = false,
   onMerge,
   onClose,
 }: {
   floor: number;
+  demo?: boolean;
   onMerge: (data: { rooms: Room[]; walls: WallSegment[]; doors: DoorOpening[] }) => void;
   onClose: () => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [needsSignIn, setNeedsSignIn] = useState(false);
   const [preview, setPreview] = useState<{ rooms: DetectedRoom[]; walls: DetectedWall[]; doors: DetectedDoor[] } | null>(null);
 
   async function handleFile(file: File) {
     setBusy(true);
     setError(null);
+    setNeedsSignIn(false);
     setPreview(null);
     try {
       const dataUrl = await new Promise<string>((resolve, reject) => {
@@ -56,6 +65,10 @@ export function AiDetectModal({
         body: JSON.stringify({ imageBase64: base64, mediaType, floor }),
       });
       const data = await res.json();
+      if (res.status === 401) {
+        setNeedsSignIn(true);
+        return;
+      }
       if (!res.ok) throw new Error(data.error ?? 'Detection failed');
       if (data.rooms.length === 0) throw new Error('No rooms could be confidently detected in that image.');
       setPreview(data);
@@ -63,6 +76,15 @@ export function AiDetectModal({
       setError(err instanceof Error ? err.message : 'Detection failed');
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function trySample() {
+    try {
+      const blob = await (await fetch(SAMPLE_PLAN)).blob();
+      await handleFile(new File([blob], 'sample-floor-plan.png', { type: 'image/png' }));
+    } catch {
+      setError('Could not load the sample plan.');
     }
   }
 
@@ -96,6 +118,10 @@ export function AiDetectModal({
         <h3>AI floor-plan detection</h3>
         <p>Upload an image of floor {floor}. Claude will draft rooms, walls, and doors for you to review.</p>
 
+        {demo && (
+          <p className="info-text">This is the live demo: detected rooms are added for you to try, but not saved.</p>
+        )}
+
         {!preview && (
           <label className={`dropzone${busy ? '' : ''}`}>
             <input
@@ -117,6 +143,19 @@ export function AiDetectModal({
           </label>
         )}
 
+        {!preview && !busy && (
+          <button type="button" className="btn-ghost btn-sm sample-plan" onClick={trySample}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={SAMPLE_PLAN} alt="" width={28} height={50} />
+            No plan handy? Try the sample floor plan
+          </button>
+        )}
+
+        {needsSignIn && (
+          <p className="error-text">
+            Floor-plan detection needs an account. <Link href="/login">Sign in</Link> or <Link href="/signup">sign up free</Link>.
+          </p>
+        )}
         {error && <p className="error-text">{error}</p>}
 
         {preview && (
