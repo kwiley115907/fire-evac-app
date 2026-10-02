@@ -54,8 +54,11 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   const auth = await requireUserId();
   if (!auth) return NextResponse.json({ error: 'Not signed in' }, { status: 401 });
 
-  const { error } = await auth.supabase.from('buildings').delete().eq('id', id);
+  // RLS turns a delete the caller isn't allowed into zero rows, not an
+  // error, so check something was actually removed.
+  const { data, error } = await auth.supabase.from('buildings').delete().eq('id', id).select('id');
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (!data?.length) return NextResponse.json({ error: 'Building not found' }, { status: 404 });
 
   return NextResponse.json({ ok: true });
 }

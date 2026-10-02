@@ -15,6 +15,9 @@ export async function GET() {
   const { data, error } = await auth.supabase
     .from('buildings')
     .select('id, name, updated_at, graph_data')
+    // RLS also lets admins read every building (supabase/admin.sql); the
+    // dashboard is "your buildings", so keep it to the caller's own.
+    .eq('owner_id', auth.userId)
     .order('updated_at', { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
