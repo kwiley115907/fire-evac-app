@@ -13,7 +13,7 @@ export default function BuildingPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [session, setSession] = useState<Session | null | undefined>(undefined);
-  const [data, setData] = useState<{ name: string; graph: BuildingGraph } | null>(null);
+  const [data, setData] = useState<{ name: string; graph: BuildingGraph; upload: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -30,7 +30,11 @@ export default function BuildingPage() {
       .then(async (res) => {
         const body = await res.json();
         if (!res.ok) throw new Error(body.error ?? 'Failed to load building');
-        setData({ name: body.name, graph: body.graph });
+        // /buildings/<id>?upload=1 (from "Create & upload plan") opens the
+        // floor-plan upload straight away; drop the flag so a reload doesn't.
+        const upload = new URLSearchParams(window.location.search).get('upload') === '1';
+        if (upload) window.history.replaceState(null, '', window.location.pathname);
+        setData({ name: body.name, graph: body.graph, upload });
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load building'));
   }, [session, router, params.id]);
@@ -57,5 +61,5 @@ export default function BuildingPage() {
     );
   }
 
-  return <BuildingEditor buildingId={params.id} initialName={data.name} initialGraph={data.graph} />;
+  return <BuildingEditor buildingId={params.id} initialName={data.name} initialGraph={data.graph} openDetect={data.upload} />;
 }

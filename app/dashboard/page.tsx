@@ -80,8 +80,10 @@ export default function DashboardPage() {
       .catch(() => setError('Failed to load buildings.'));
   }, [session, router]);
 
-  async function handleCreate(e: React.FormEvent) {
+  async function handleCreate(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    // Which button submitted: "Create" or "Create & upload floor plan".
+    const upload = (e.nativeEvent as SubmitEvent).submitter?.getAttribute('value') === 'upload';
     if (!newName.trim()) return;
     setBusy(true);
     setError(null);
@@ -93,7 +95,7 @@ export default function DashboardPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Failed to create building');
-      router.push(`/buildings/${data.id}`);
+      router.push(upload ? `/buildings/${data.id}?upload=1` : `/buildings/${data.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create building');
       setBusy(false);
@@ -130,15 +132,18 @@ export default function DashboardPage() {
           <div className="modal-overlay" onClick={() => !busy && setCreating(false)}>
             <form className="modal" onClick={(e) => e.stopPropagation()} onSubmit={handleCreate}>
               <h3>Name this building</h3>
-              <p>Next you’ll draw rooms, add doors and stairs, and mark the exits.</p>
+              <p>Next, upload a photo of its floor plan and Claude draws the rooms, or draw them yourself.</p>
               <input autoFocus placeholder="e.g. Riverside Office — Building A" value={newName} onChange={(e) => setNewName(e.target.value)} />
               <div className="modal-actions">
                 <button type="button" className="btn-ghost" onClick={() => setCreating(false)} disabled={busy}>
                   Cancel
                 </button>
-                <button type="submit" className="btn-primary" disabled={busy || !newName.trim()}>
-                  {busy && <span className="spinner" />}
-                  Create
+                <button type="submit" value="draw" className="btn-ghost" disabled={busy || !newName.trim()}>
+                  Create &amp; draw
+                </button>
+                <button type="submit" value="upload" className="btn-primary" disabled={busy || !newName.trim()}>
+                  {busy ? <span className="spinner" /> : <Icon name="image" size={16} />}
+                  Create &amp; upload plan
                 </button>
               </div>
             </form>

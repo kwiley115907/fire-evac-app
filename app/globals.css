@@ -870,3 +870,14 @@ kbd {
   .admin-row { flex-direction: column; align-items: stretch; gap: 0.6rem; }
   .admin-row-actions > * { flex: 1; }
 }
+
+/* Floor-plan upload: a labelled button in the editor's top bar, and a card on empty floors */
+.upload-plan-top { background: rgba(177, 140, 255, 0.14); border-color: rgba(177, 140, 255, 0.45); color: #d7c6ff; }
+.upload-plan-top:hover { background: rgba(177, 140, 255, 0.24); border-color: var(--plum); color: #fff; }
+.empty-floor-cta { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 7; width: min(340px, calc(100% - 7rem)); display: flex; flex-direction: column; align-items: center; gap: 0.55rem; padding: 1.1rem 1.2rem; text-align: center; border-radius: 18px; background: rgba(11, 16, 23, 0.92); border: 1px solid rgba(177, 140, 255, 0.4); box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5); }
+.empty-floor-cta span { font-size: 0.88rem; color: var(--text-2); }
+.empty-floor-cta small { font-size: 0.76rem; color: var(--text-3); }
+@media (max-width: 520px) {
+  .modal-actions { flex-wrap: wrap; }
+  .modal-actions > * { flex: 1 1 auto; }
+}
